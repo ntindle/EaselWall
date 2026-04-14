@@ -1,0 +1,130 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  APP_NAME: EaselWall
+  SCHEME: EaselWall
+
+jobs:
+  build-sign-release:
+    runs-on: macos-15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Import signing certificate
+        env:
+          P12_BASE64: ${{ secrets.DEVELOPER_ID_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.DEVELOPER_ID_P12_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          security create-keychain -p "" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "" "$KEYCHAIN_PATH"
+          echo "$P12_BASE64" | base64 --decode > $RUNNER_TEMP/cert.p12
+          security import $RUNNER_TEMP/cert.p12 \
+            -k "$KEYCHAIN_PATH" \
+            -P "$P12_PASSWORD" \
+            -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -k "" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
+
+      - name: Build Release
+        run: |
+          xcodebuild -project EaselWall.xcodeproj \
+            -scheme $SCHEME \
+            -configuration Release \
+            -destination 'platform=macOS' \
+            -derivedDataPath build/DerivedData \
+            MARKETING_VERSION=$VERSION \
+            CURRENT_PROJECT_VERSION=${VERSION%%.*} \
+            CODE_SIGN_IDENTITY="Developer ID Application" \
+            OTHER_CODE_SIGN_FLAGS="--keychain $RUNNER_TEMP/app-signing.keychain-db" \
+            build
+
+      - name: Verify code signature
+        run: |
+          APP_PATH="build/DerivedData/Build/Products/Release/$APP_NAME.app"
+          codesign --verify --deep --strict "$APP_PATH"
+          echo "Code signature verified"
+
+      - name: Create DMG
+        run: |
+          mkdir -p build/release
+          cp -R "build/DerivedData/Build/Products/Release/$APP_NAME.app" build/release/
+          hdiutil create \
+            -volname "$APP_NAME" \
+            -srcfolder build/release \
+            -ov -format UDZO \
+            "build/$APP_NAME-$VERSION.dmg"
+          codesign --sign "Developer ID Application" "build/$APP_NAME-$VERSION.dmg"
+
+      - name: Notarize
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: |
+          xcrun notarytool submit "build/$APP_NAME-$VERSION.dmg" \
+            --apple-id "$APPLE_ID" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_PASSWORD" \
+            --wait
+
+      - name: Staple notarization ticket
+        run: xcrun stapler staple "build/$APP_NAME-$VERSION.dmg"
+
+      - name: Compute SHA256
+        run: |
+          SHA256=$(shasum -a 256 "build/$APP_NAME-$VERSION.dmg" | awk '{print $1}')
+          echo "SHA256=$SHA256" >> $GITHUB_ENV
+          echo "SHA256: $SHA256"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/${{ env.APP_NAME }}-${{ env.VERSION }}.dmg
+          generate_release_notes: true
+          body: |
+            ## Install
+
+            **Direct download:** Download the DMG above.
+
+            **Homebrew:**
+            ```
+            brew install ntindle/easelwall/easelwall
+            ```
+
+            **SHA256:** `${{ env.SHA256 }}`
+
+      - name: Update Homebrew tap
+        env:
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          git clone "https://x-access-token:${TAP_TOKEN}@github.com/ntindle/homebrew-easelwall.git" /tmp/tap
+          cd /tmp/tap
+          sed -i '' "s/version \".*\"/version \"$VERSION\"/" Casks/easelwall.rb
+          sed -i '' "s/sha256 .*/sha256 \"$SHA256\"/" Casks/easelwall.rb
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/easelwall.rb
+          git commit -m "Update EaselWall to $VERSION"
+          git push
+
+      - name: Cleanup keychain
+        if: always()
+        run: security delete-keychain $RUNNER_TEMP/app-signing.keychain-db 2>/dev/null || true

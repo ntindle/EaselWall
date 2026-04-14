@@ -1,0 +1,345 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Appearance" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Apariencia" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Apparence" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Erscheinungsbild" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "外観" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "外观" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Aparência" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Weergave" } }
+      }
+    },
+    "Schedule" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Horario" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Horaire" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Zeitplan" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "スケジュール" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "计划" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Agendamento" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Planning" } }
+      }
+    },
+    "Displays" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Pantallas" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Écrans" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Bildschirme" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ディスプレイ" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "显示器" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Telas" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Beeldschermen" } }
+      }
+    },
+    "Gallery" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Galería" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Galerie" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Galerie" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ギャラリー" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "画廊" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Galeria" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Galerij" } }
+      }
+    },
+    "General" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "General" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Général" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Allgemein" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "一般" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "通用" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Geral" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Algemeen" } }
+      }
+    },
+    "About" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Acerca de" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "À propos" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Über" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "情報" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "关于" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Sobre" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Over" } }
+      }
+    },
+    "Museum Mat" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Paspartú" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Passe-partout" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Passepartout" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "マット台紙" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "装裱卡纸" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Paspatur" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Passe-partout" } }
+      }
+    },
+    "Spacing" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Espaciado" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Espacement" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Abstand" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "余白" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "间距" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Espaçamento" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Afstand" } }
+      }
+    },
+    "Mat Color" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Color del paspartú" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Couleur du passe-partout" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Passepartout-Farbe" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "マットの色" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "卡纸颜色" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Cor do paspatur" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Passe-partout kleur" } }
+      }
+    },
+    "Compact" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Compacto" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Compact" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Kompakt" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "コンパクト" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "紧凑" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Compacto" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Compact" } }
+      }
+    },
+    "Generous" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Amplio" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Généreux" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Großzügig" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ゆったり" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "宽松" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Generoso" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Ruim" } }
+      }
+    },
+    "Next Painting" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Siguiente pintura" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Tableau suivant" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Nächstes Gemälde" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "次の絵画" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "下一幅画" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Próxima pintura" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Volgend schilderij" } }
+      }
+    },
+    "Settings..." : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Ajustes…" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Réglages…" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Einstellungen…" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "設定…" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "设置…" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Configurações…" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Instellingen…" } }
+      }
+    },
+    "Quit" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Salir" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Quitter" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Beenden" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "終了" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "退出" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Sair" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Stop" } }
+      }
+    },
+    "Change wallpaper at" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Cambiar fondo a las" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Changer le fond à" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Hintergrundbild ändern um" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "壁紙変更時刻" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "更换壁纸时间" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Mudar papel de parede às" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Achtergrond wijzigen om" } }
+      }
+    },
+    "Wallpaper changes daily at the selected time." : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "El fondo de pantalla cambia diariamente a la hora seleccionada." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Le fond d'écran change chaque jour à l'heure sélectionnée." } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Das Hintergrundbild wird täglich zur gewählten Uhrzeit gewechselt." } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "選択した時刻に毎日壁紙が変わります。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "壁纸每天在选定的时间更换。" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "O papel de parede muda diariamente no horário selecionado." } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "De achtergrond verandert dagelijks op het geselecteerde tijdstip." } }
+      }
+    },
+    "Unique painting per display" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Pintura única por pantalla" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Tableau unique par écran" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Eigenes Gemälde pro Bildschirm" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ディスプレイごとに異なる絵画" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "每个显示器使用不同的画作" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Pintura única por tela" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Uniek schilderij per scherm" } }
+      }
+    },
+    "When enabled, each monitor gets a different painting. When disabled, monitors with the same orientation share a painting." : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Si está activado, cada monitor muestra una pintura diferente. Si está desactivado, los monitores con la misma orientación comparten pintura." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Lorsque activé, chaque écran affiche un tableau différent. Lorsque désactivé, les écrans de même orientation partagent le même tableau." } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Wenn aktiviert, erhält jeder Monitor ein anderes Gemälde. Wenn deaktiviert, teilen sich Monitore gleicher Ausrichtung ein Gemälde." } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "有効にすると、各モニターに異なる絵画が表示されます。無効にすると、同じ向きのモニターは同じ絵画を共有します。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "启用后，每个显示器显示不同的画作。禁用后，相同方向的显示器共享同一幅画。" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Quando ativado, cada monitor exibe uma pintura diferente. Quando desativado, monitores com a mesma orientação compartilham a mesma pintura." } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Indien ingeschakeld krijgt elk scherm een ander schilderij. Indien uitgeschakeld delen schermen met dezelfde oriëntatie een schilderij." } }
+      }
+    },
+    "Launch at login" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Abrir al iniciar sesión" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Ouvrir à la connexion" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Bei Anmeldung starten" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ログイン時に起動" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "登录时启动" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Abrir no login" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Open bij inloggen" } }
+      }
+    },
+    "Automatically start EaselWall when you log in." : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Iniciar EaselWall automáticamente al iniciar sesión." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Lancer automatiquement EaselWall à la connexion." } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "EaselWall automatisch bei der Anmeldung starten." } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ログイン時にEaselWallを自動的に起動します。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "登录时自动启动梵高壁纸。" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Iniciar EaselWall automaticamente ao fazer login." } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Start EaselWall automatisch bij het inloggen." } }
+      }
+    },
+    "Total paintings:" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Total de pinturas:" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Total de tableaux :" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Gemälde gesamt:" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "絵画の合計:" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "画作总数:" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Total de pinturas:" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Totaal schilderijen:" } }
+      }
+    },
+    "Landscape:" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Horizontal:" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Paysage :" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Querformat:" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "横向き:" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "横向:" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Paisagem:" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Liggend:" } }
+      }
+    },
+    "Portrait:" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Vertical:" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Portrait :" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Hochformat:" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "縦向き:" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "纵向:" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Retrato:" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Staand:" } }
+      }
+    },
+    "Rijksmuseum" : {
+      "localizations" : {}
+    },
+    "API Key" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Clave de API" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Clé API" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "API-Schlüssel" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "APIキー" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "API密钥" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Chave de API" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "API-sleutel" } }
+      }
+    },
+    "Fetch Paintings" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Obtener pinturas" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Récupérer les tableaux" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Gemälde abrufen" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "絵画を取得" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "获取画作" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Buscar pinturas" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Schilderijen ophalen" } }
+      }
+    },
+    "Get a free API key at rijksmuseum.nl to expand the collection." : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Obtén una clave de API gratuita en rijksmuseum.nl para ampliar la colección." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Obtenez une clé API gratuite sur rijksmuseum.nl pour enrichir la collection." } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Holen Sie sich einen kostenlosen API-Schlüssel auf rijksmuseum.nl, um die Sammlung zu erweitern." } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "rijksmuseum.nlで無料のAPIキーを取得してコレクションを拡張できます。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "在rijksmuseum.nl获取免费API密钥以扩展收藏。" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Obtenha uma chave de API gratuita em rijksmuseum.nl para expandir a coleção." } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Haal een gratis API-sleutel op bij rijksmuseum.nl om de collectie uit te breiden." } }
+      }
+    },
+    "EaselWall" : {
+      "localizations" : {
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "ゴッホの壁紙" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "梵高壁纸" } }
+      }
+    },
+    "%lld paintings in collection" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "%lld pinturas en la colección" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "%lld tableaux dans la collection" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "%lld Gemälde in der Sammlung" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "コレクション内の絵画: %lld点" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "收藏中有 %lld 幅画作" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "%lld pinturas na coleção" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "%lld schilderijen in collectie" } }
+      }
+    },
+    "Images sourced under CC0 from:" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Imágenes bajo licencia CC0 de:" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Images sous licence CC0 provenant de :" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Bilder unter CC0-Lizenz von:" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "CC0ライセンスの画像提供元:" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "图片来源（CC0许可）：" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Imagens sob licença CC0 de:" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Afbeeldingen onder CC0 van:" } }
+      }
+    },
+    "%@ display" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Pantalla %@" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Écran %@" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "%@-Bildschirm" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "%@ディスプレイ" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "%@显示器" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Tela %@" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "%@-scherm" } }
+      }
+    },
+    "Added %lld new paintings" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Se añadieron %lld pinturas nuevas" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "%lld nouveaux tableaux ajoutés" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "%lld neue Gemälde hinzugefügt" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "%lld点の新しい絵画を追加しました" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "新增了 %lld 幅画作" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "%lld novas pinturas adicionadas" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "%lld nieuwe schilderijen toegevoegd" } }
+      }
+    }
+  },
+  "version" : "1.0"
+}

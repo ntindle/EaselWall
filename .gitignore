@@ -1,0 +1,46 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Xcode - generated from project.yml via `xcodegen generate`
+*.xcodeproj
+*.xcworkspace
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Dependencies
+.swiftpm/
+Packages/
+
+# Temporary wallpaper renders
+/tmp/EaselWall/
+
+# Python (icon generation)
+__pycache__/
+*.pyc
+
+# Environment / secrets
+.env
+*.pem
+*.p12
+*.mobileprovision
+*.provisionprofile
+
+# Editor
+*.swp
+*~
+.vscode/
+.idea/
+
+# Claude Code local config
+.claude/settings.local.json
+.mcp.json
+
