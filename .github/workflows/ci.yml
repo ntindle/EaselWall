@@ -18,6 +18,19 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
+      - name: Remove ControlWidget dependency (requires macOS 26 SDK)
+        run: |
+          python3 -c "
+          import json
+          with open('project.yml') as f:
+              content = f.read()
+          # Remove the widget dependency from the main target for CI
+          content = content.replace(\"    dependencies:\\n      - target: EaselWallControlWidget\\n\", \"\")
+          with open('project.yml', 'w') as f:
+              f.write(content)
+          "
+          xcodegen generate
+
       - name: Build (Debug)
         run: |
           xcodebuild -project EaselWall.xcodeproj \
