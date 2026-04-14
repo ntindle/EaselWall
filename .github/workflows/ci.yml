@@ -21,8 +21,9 @@ jobs:
       - name: Build (Debug)
         run: |
           xcodebuild -project EaselWall.xcodeproj \
-            -scheme EaselWall \
+            -target EaselWall \
             -configuration Debug \
             -destination 'platform=macOS' \
             CODE_SIGN_IDENTITY="-" \
+            CODE_SIGN_ENTITLEMENTS="" \
             build
