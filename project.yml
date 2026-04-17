@@ -43,7 +43,7 @@ targets:
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         SUFeedURL: "https://easelwall.com/appcast.xml"
-        SUPublicEDKey: ""
+        SUPublicEDKey: "x3QheYq4LtEw8ouTwGpeLAsMUhmXdFerjAOMoYxiceg="
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.ntindle.EaselWall

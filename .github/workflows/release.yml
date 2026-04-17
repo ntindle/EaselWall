@@ -88,11 +88,27 @@ jobs:
       - name: Staple notarization ticket
         run: xcrun stapler staple "build/$APP_NAME-$VERSION.dmg"
 
+      - name: Sign DMG for Sparkle updates
+        env:
+          SPARKLE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: |
+          SPARKLE_BIN=$(find ~/Library/Developer/Xcode/DerivedData -name "sign_update" -path "*/Sparkle/bin/*" | head -1)
+          if [ -z "$SPARKLE_BIN" ]; then
+            echo "sign_update not found, resolving packages first..."
+            xcodebuild -resolvePackageDependencies -project EaselWall.xcodeproj 2>/dev/null
+            SPARKLE_BIN=$(find ~/Library/Developer/Xcode/DerivedData -name "sign_update" -path "*/Sparkle/bin/*" | head -1)
+          fi
+          ED_SIGNATURE=$("$SPARKLE_BIN" --ed-key-file <(echo "$SPARKLE_KEY") "build/$APP_NAME-$VERSION.dmg" | grep "sparkle:edSignature" | sed 's/.*"\(.*\)".*/\1/')
+          echo "ED_SIGNATURE=$ED_SIGNATURE" >> $GITHUB_ENV
+          echo "Sparkle EdDSA signature: $ED_SIGNATURE"
+
       - name: Compute SHA256
         run: |
           SHA256=$(shasum -a 256 "build/$APP_NAME-$VERSION.dmg" | awk '{print $1}')
+          DMG_SIZE=$(stat -f%z "build/$APP_NAME-$VERSION.dmg")
           echo "SHA256=$SHA256" >> $GITHUB_ENV
-          echo "SHA256: $SHA256"
+          echo "DMG_SIZE=$DMG_SIZE" >> $GITHUB_ENV
+          echo "SHA256: $SHA256, Size: $DMG_SIZE"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -124,6 +140,41 @@ jobs:
           git add Casks/easelwall.rb
           git commit -m "Update EaselWall to $VERSION"
           git push
+
+      - name: Update appcast.xml
+        run: |
+          PUB_DATE=$(date -u "+%a, %d %b %Y %H:%M:%S +0000")
+          BUILD_NUM=$(echo "$VERSION" | tr -dc '0-9' | head -c 4)
+          cat > website/appcast.xml << APPCASTEOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+            <channel>
+              <title>EaselWall</title>
+              <link>https://easelwall.com/appcast.xml</link>
+              <description>EaselWall update feed</description>
+              <language>en</language>
+              <item>
+                <title>Version $VERSION</title>
+                <sparkle:version>$BUILD_NUM</sparkle:version>
+                <sparkle:shortVersionString>$VERSION</sparkle:shortVersionString>
+                <pubDate>$PUB_DATE</pubDate>
+                <enclosure
+                  url="https://github.com/ntindle/EaselWall/releases/download/v$VERSION/$APP_NAME-$VERSION.dmg"
+                  type="application/octet-stream"
+                  sparkle:edSignature="$ED_SIGNATURE"
+                  length="$DMG_SIZE"
+                />
+              </item>
+            </channel>
+          </rss>
+          APPCASTEOF
+          # Remove leading whitespace from heredoc
+          sed -i '' 's/^          //' website/appcast.xml
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add website/appcast.xml
+          git commit -m "Update appcast for v$VERSION" || echo "No appcast changes"
+          git push || echo "Push failed — appcast update may need manual push"
 
       - name: Cleanup keychain
         if: always()
