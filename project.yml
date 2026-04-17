@@ -9,6 +9,10 @@ options:
     macOS: "14.0"
   xcodeVersion: "16.0"
   defaultConfig: Release
+packages:
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: "2.6.0"
 settings:
   base:
     SWIFT_VERSION: "6.0"
@@ -29,6 +33,8 @@ targets:
         buildPhase: resources
     dependencies:
       - target: EaselWallControlWidget
+      - package: Sparkle
+        product: Sparkle
     info:
       path: Sources/EaselWall/Info.plist
       properties:
@@ -36,6 +42,8 @@ targets:
         CFBundleName: "EaselWall"
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        SUFeedURL: "https://easelwall.com/appcast.xml"
+        SUPublicEDKey: ""
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.ntindle.EaselWall

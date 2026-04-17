@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>EaselWall</title>
+    <link>https://easelwall.com/appcast.xml</link>
+    <description>EaselWall update feed</description>
+    <language>en</language>
+    <item>
+      <title>Version 0.1.0-beta</title>
+      <sparkle:version>1</sparkle:version>
+      <sparkle:shortVersionString>0.1.0-beta</sparkle:shortVersionString>
+      <pubDate>Mon, 14 Apr 2026 00:00:00 +0000</pubDate>
+      <description><![CDATA[
+        <h2>First public beta</h2>
+        <ul>
+          <li>53 paintings from Van Gogh, Monet, Renoir, Cezanne, Degas, Cassatt, Seurat</li>
+          <li>30 bundled for offline use</li>
+          <li>Museum-style mat compositing</li>
+          <li>Orientation-aware display matching</li>
+          <li>Daily rotation with launchd scheduling</li>
+        </ul>
+      ]]></description>
+      <enclosure
+        url="https://github.com/ntindle/EaselWall/releases/download/v0.1.0-beta/EaselWall-0.1.0-beta.dmg"
+        type="application/octet-stream"
+        length="31457280"
+      />
+    </item>
+  </channel>
+</rss>

@@ -11,7 +11,12 @@ struct EaselWallApp: App {
                 paintingStore: appDelegate.paintingStore,
                 wallpaperManager: appDelegate.wallpaperManager,
                 screenManager: appDelegate.screenManager,
-                onOpenSettings: { appDelegate.showSettings() }
+                onOpenSettings: { appDelegate.showSettings() },
+                onCheckForUpdates: {
+                    #if !APPSTORE
+                    appDelegate.appUpdater?.checkForUpdates()
+                    #endif
+                }
             )
         } label: {
             Image(systemName: "paintpalette.fill")
@@ -32,6 +37,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var rotationTimer: Timer?
     private var settingsWindow: NSWindow?
+    #if !APPSTORE
+    private(set) var appUpdater: AppUpdater?
+    #endif
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSLog("[EaselWall] App launched, \(paintingStore.catalog.count) paintings loaded")
@@ -39,6 +47,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if settings.launchAtLogin {
             try? SMAppService.mainApp.register()
         }
+
+        #if !APPSTORE
+        appUpdater = AppUpdater()
+        #endif
 
         if paintingStore.needsRotation() {
             NSLog("[EaselWall] Rotation needed, rotating...")

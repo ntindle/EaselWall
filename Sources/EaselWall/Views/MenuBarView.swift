@@ -6,6 +6,7 @@ struct MenuBarView: View {
     @ObservedObject var screenManager: ScreenManager
 
     let onOpenSettings: () -> Void
+    let onCheckForUpdates: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -29,6 +30,14 @@ struct MenuBarView: View {
                 Label("Settings...", systemImage: "gear")
             }
             .keyboardShortcut(",")
+
+            #if !APPSTORE
+            Button {
+                onCheckForUpdates()
+            } label: {
+                Label("Check for Updates...", systemImage: "arrow.triangle.2.circlepath")
+            }
+            #endif
 
             Divider()
 
