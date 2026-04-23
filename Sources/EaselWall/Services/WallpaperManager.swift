@@ -55,16 +55,32 @@ final class WallpaperManager: ObservableObject {
 
     func refreshCurrentWallpapers() {
         let screens = screenManager.screens
+        var usedPaintingIDs = Set(paintingStore.currentAssignments.values.map(\.id))
+
         for screen in screens {
-            guard let painting = paintingStore.currentAssignments[screen.id],
-                  let image = paintingStore.loadImage(for: painting) else {
-                continue
+            if let painting = paintingStore.currentAssignments[screen.id],
+               let image = paintingStore.loadImage(for: painting) {
+                // Existing assignment — re-render with current mat settings
+                renderAndApply(
+                    paintingImage: image,
+                    painting: painting,
+                    screen: screen
+                )
+            } else {
+                // New/unassigned screen — pick a painting for it
+                guard let painting = paintingStore.nextPainting(
+                    for: screen.orientation,
+                    excluding: settings.uniquePerDisplay ? usedPaintingIDs : []
+                ) else { continue }
+
+                usedPaintingIDs.insert(painting.id)
+                let image = paintingStore.loadImage(for: painting)
+                renderAndApply(
+                    paintingImage: image,
+                    painting: painting,
+                    screen: screen
+                )
             }
-            renderAndApply(
-                paintingImage: image,
-                painting: painting,
-                screen: screen
-            )
         }
     }
 
