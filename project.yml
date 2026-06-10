@@ -60,7 +60,7 @@ targets:
         Release:
           CODE_SIGN_IDENTITY: "Developer ID Application"
           CODE_SIGN_ENTITLEMENTS: EaselWall.entitlements
-          CODE_SIGN_STYLE: Automatic
+          CODE_SIGN_STYLE: Manual
           DEVELOPMENT_TEAM: ZT2H4NNXSQ
         AppStore:
           CODE_SIGN_ENTITLEMENTS: EaselWall-AppStore.entitlements
@@ -97,7 +97,7 @@ targets:
         Release:
           CODE_SIGN_IDENTITY: "Developer ID Application"
           CODE_SIGN_ENTITLEMENTS: EaselWallControlWidget.entitlements
-          CODE_SIGN_STYLE: Automatic
+          CODE_SIGN_STYLE: Manual
           DEVELOPMENT_TEAM: ZT2H4NNXSQ
         AppStore:
           CODE_SIGN_ENTITLEMENTS: EaselWallControlWidget-AppStore.entitlements
