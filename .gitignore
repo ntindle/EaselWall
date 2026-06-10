@@ -23,16 +23,22 @@ Packages/
 # Temporary wallpaper renders
 /tmp/EaselWall/
 
+# App Store screenshot captures (regenerable)
+screenshots/
+
 # Python (icon generation)
 __pycache__/
 *.pyc
 
 # Environment / secrets
 .env
+.env.*
 *.pem
 *.p12
 *.mobileprovision
 *.provisionprofile
+*.certSigningRequest
+AuthKey_*.p8
 
 # Editor
 *.swp
