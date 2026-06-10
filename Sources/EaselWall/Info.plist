@@ -20,5 +20,11 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSUIElement</key>
 	<true/>
+	<key>LSMultipleInstancesProhibited</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string>https://easelwall.com/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>x3QheYq4LtEw8ouTwGpeLAsMUhmXdFerjAOMoYxiceg=</string>
 </dict>
 </plist>

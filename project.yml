@@ -39,6 +39,7 @@ targets:
       path: Sources/EaselWall/Info.plist
       properties:
         LSUIElement: true
+        LSMultipleInstancesProhibited: true
         CFBundleName: "EaselWall"
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"

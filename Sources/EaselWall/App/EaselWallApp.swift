@@ -41,6 +41,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private(set) var appUpdater: AppUpdater?
     #endif
 
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        // LSMultipleInstancesProhibited covers LaunchServices launches, but a direct
+        // binary launch (Xcode debug, manual copy) bypasses it. Hand off to the
+        // existing instance and quit if we're the duplicate.
+        let bundleID = Bundle.main.bundleIdentifier ?? "com.ntindle.EaselWall"
+        let ours = ProcessInfo.processInfo.processIdentifier
+        let others = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID)
+            .filter { $0.processIdentifier != ours }
+        if let existing = others.first {
+            NSLog("[EaselWall] Another instance running (pid \(existing.processIdentifier)); activating it and quitting")
+            existing.activate()
+            NSApp.terminate(nil)
+        }
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSLog("[EaselWall] App launched, \(paintingStore.catalog.count) paintings loaded")
 
