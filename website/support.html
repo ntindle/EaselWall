@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Support — EaselWall</title>
+<meta name="description" content="Help, contact, and frequently asked questions for EaselWall — the daily impressionist wallpaper app for macOS.">
+
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+<link rel="icon" href="assets/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta name="theme-color" content="#F1E9D7">
+<link rel="canonical" href="https://easelwall.com/support">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --paper:      #F1E9D7;
+  --paper-2:    #EADFC6;
+  --ink:        #1A120B;
+  --ink-soft:   #4A3A28;
+  --ink-mute:   #8A7556;
+  --brass:      #A87433;
+  --brass-dim:  #8A5C22;
+  --vermillion: #B5381C;
+  --mat:        #F6EFDD;
+  --mat-edge:   #C9B892;
+  --rule:       #BFAB85;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Instrument Sans', -apple-system, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  line-height: 1.7;
+  font-size: 17px;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  opacity: 0.35;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='4'/><feColorMatrix values='0 0 0 0 0.18  0 0 0 0 0.14  0 0 0 0 0.08  0 0 0 0.16 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+
+.container { max-width: 720px; margin: 0 auto; padding: 0 32px; }
+
+/* Header — copied from index for continuity */
+.topbar {
+  border-bottom: 1px solid var(--rule);
+  padding: 18px 0;
+  background: var(--paper);
+}
+.topbar-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  max-width: 1100px; margin: 0 auto; padding: 0 32px;
+}
+.mark {
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  font-size: 1.15rem;
+  color: var(--ink);
+  text-decoration: none;
+  display: flex; align-items: center; gap: 10px;
+  font-variation-settings: "SOFT" 50, "opsz" 24;
+}
+.mark-glyph {
+  width: 28px; height: 28px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--ink); color: var(--paper);
+  font-family: 'Fraunces', serif;
+  font-weight: 500;
+  font-style: italic;
+  border-radius: 2px;
+  font-size: 1rem;
+}
+.topbar-meta {
+  display: flex; gap: 28px; align-items: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  color: var(--ink-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.topbar-meta a {
+  color: var(--ink-soft);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  padding-bottom: 2px;
+  transition: border-color 0.2s;
+}
+.topbar-meta a:hover { border-bottom-color: var(--brass); }
+
+/* Page body */
+main { padding: 64px 0 96px; }
+
+.kicker {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--ink-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  margin-bottom: 14px;
+}
+
+h1 {
+  font-family: 'Fraunces', serif;
+  font-weight: 400;
+  font-size: 3.2rem;
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  margin-bottom: 28px;
+  font-variation-settings: "SOFT" 80, "opsz" 96;
+}
+h1 .it {
+  font-style: italic;
+  font-variation-settings: "SOFT" 100, "opsz" 96;
+}
+
+.lede {
+  font-family: 'Fraunces', serif;
+  font-weight: 300;
+  font-size: 1.3rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin-bottom: 56px;
+  font-variation-settings: "SOFT" 60, "opsz" 36;
+}
+
+h2 {
+  font-family: 'Fraunces', serif;
+  font-weight: 500;
+  font-size: 1.5rem;
+  margin: 48px 0 16px;
+  font-variation-settings: "SOFT" 70, "opsz" 24;
+}
+
+h3 {
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 1.15rem;
+  margin: 28px 0 6px;
+  color: var(--ink-soft);
+  font-variation-settings: "SOFT" 100, "opsz" 18;
+}
+
+p { margin-bottom: 1em; color: var(--ink-soft); }
+
+a {
+  color: var(--brass-dim);
+  border-bottom: 1px solid var(--mat-edge);
+  text-decoration: none;
+  transition: border-color 0.2s;
+}
+a:hover { border-bottom-color: var(--brass); }
+
+code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.92em;
+  background: var(--paper-2);
+  padding: 2px 6px;
+  border-radius: 2px;
+}
+
+.divider {
+  border: 0;
+  border-top: 1px solid var(--rule);
+  margin: 56px 0;
+}
+
+.contact-card {
+  background: var(--mat);
+  border: 1px solid var(--mat-edge);
+  border-radius: 2px;
+  padding: 28px 32px;
+  margin: 24px 0;
+}
+.contact-card h3 {
+  margin-top: 0;
+  font-style: normal;
+  font-weight: 500;
+  font-size: 1rem;
+  color: var(--ink);
+  font-family: 'JetBrains Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.contact-card p { margin-bottom: 0; color: var(--ink-soft); }
+
+footer {
+  border-top: 1px solid var(--rule);
+  padding: 24px 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--ink-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.footer-grid {
+  max-width: 1100px; margin: 0 auto; padding: 0 32px;
+  display: grid; grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+.footer-grid .center { text-align: center; }
+.footer-grid .right { text-align: right; }
+.footer-grid a { color: var(--ink-soft); border-bottom: 1px solid transparent; }
+.footer-grid a:hover { border-bottom-color: var(--brass); }
+
+@media (max-width: 720px) {
+  h1 { font-size: 2.2rem; }
+  .lede { font-size: 1.1rem; }
+  .footer-grid { grid-template-columns: 1fr; text-align: center; }
+  .footer-grid .center, .footer-grid .right { text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a href="/" class="mark">
+      <span class="mark-glyph">E</span>
+      EaselWall
+    </a>
+    <nav class="topbar-meta">
+      <a href="/">Home</a>
+      <a href="/privacy">Privacy</a>
+      <a href="https://github.com/ntindle/EaselWall">GitHub &#8599;</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="container">
+    <p class="kicker">Help &amp; Contact</p>
+    <h1>Support, <span class="it">quietly offered</span>.</h1>
+    <p class="lede">
+      EaselWall is a one-person operation. If something isn&rsquo;t right, write &mdash; you&rsquo;ll hear back.
+    </p>
+
+    <div class="contact-card">
+      <h3>Email</h3>
+      <p><a href="mailto:support@easelwall.com">support@easelwall.com</a></p>
+    </div>
+
+    <div class="contact-card">
+      <h3>Report a bug</h3>
+      <p>
+        Open an issue on
+        <a href="https://github.com/ntindle/EaselWall/issues">GitHub</a>.
+        Include your macOS version, your monitor setup, and what you expected vs. what happened.
+      </p>
+    </div>
+
+    <hr class="divider">
+
+    <h2>Frequently asked</h2>
+
+    <h3>The wallpaper didn&rsquo;t change overnight.</h3>
+    <p>
+      EaselWall rotates at the time you set in <em>Settings &rsaquo; Schedule</em>. If your Mac was asleep across that moment, the launchd agent will catch up on the next wake. If it still didn&rsquo;t rotate, click the menu bar icon and choose <em>Next Painting</em>.
+    </p>
+
+    <h3>Can I add my own paintings?</h3>
+    <p>
+      Not in v1. The catalogue is curated from public-domain museum collections (Art Institute of Chicago, The Met, Rijksmuseum). Custom collections are on the roadmap.
+    </p>
+
+    <h3>How do I get the Rijksmuseum collection?</h3>
+    <p>
+      Request a free API key from <a href="https://data.rijksmuseum.nl/">data.rijksmuseum.nl</a>, then paste it into <em>Settings &rsaquo; Gallery &rsaquo; Additional Collections</em>.
+    </p>
+
+    <h3>Where are the wallpaper images stored?</h3>
+    <p>
+      In your app sandbox container, under <code>~/Library/Containers/com.ntindle.EaselWall</code>. Bundled paintings ship with the app; downloaded ones are cached there until rotated.
+    </p>
+
+    <h3>How do I uninstall?</h3>
+    <p>
+      Quit EaselWall from its menu bar, drag the app to the Trash, and (optional) remove preferences with <code>defaults delete com.ntindle.EaselWall</code>.
+    </p>
+
+    <h3>Does EaselWall send my data anywhere?</h3>
+    <p>
+      No. See the <a href="/privacy">privacy page</a> for the full statement.
+    </p>
+  </div>
+</main>
+
+<footer>
+  <div class="footer-grid">
+    <div>Nick Tindle &middot; <a href="https://github.com/ntindle">@ntindle</a></div>
+    <div class="center">Printed with love on pixels. BSL 1.1 Licensed.</div>
+    <div class="right"><a href="/">Home</a> &middot; <a href="/privacy">Privacy</a></div>
+  </div>
+</footer>
+
+</body>
+</html>
