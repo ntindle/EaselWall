@@ -20,12 +20,12 @@ jobs:
 
       - name: Remove ControlWidget dependency (requires macOS 26 SDK)
         run: |
+          # Strip just the widget dependency line; leave the dependencies: block
+          # and any other entries (e.g. Sparkle) intact.
           python3 -c "
-          import json
           with open('project.yml') as f:
               content = f.read()
-          # Remove the widget dependency from the main target for CI
-          content = content.replace(\"    dependencies:\\n      - target: EaselWallControlWidget\\n\", \"\")
+          content = content.replace('      - target: EaselWallControlWidget\n', '')
           with open('project.yml', 'w') as f:
               f.write(content)
           "
