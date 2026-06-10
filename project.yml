@@ -64,7 +64,8 @@ targets:
         AppStore:
           CODE_SIGN_IDENTITY: "Apple Distribution"
           CODE_SIGN_ENTITLEMENTS: EaselWall-AppStore.entitlements
-          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_STYLE: Automatic
+          DEVELOPMENT_TEAM: ZT2H4NNXSQ
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: APPSTORE
 
   EaselWallControlWidget:
@@ -100,5 +101,6 @@ targets:
         AppStore:
           CODE_SIGN_IDENTITY: "Apple Distribution"
           CODE_SIGN_ENTITLEMENTS: EaselWallControlWidget-AppStore.entitlements
-          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_STYLE: Automatic
+          DEVELOPMENT_TEAM: ZT2H4NNXSQ
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: APPSTORE
