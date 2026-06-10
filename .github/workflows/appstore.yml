@@ -87,6 +87,32 @@ jobs:
             DEVELOPMENT_TEAM=$DEVELOPMENT_TEAM \
             archive
 
+      - name: Strip Sparkle from App Store archive
+        run: |
+          # Sparkle is gated by #if !APPSTORE so the binary has no symbol
+          # references to it, but the framework is still embedded via SPM
+          # and trips App Store validation (sandbox + signing rules for
+          # the bundled XPC services). Remove it from the archived bundle.
+          APP_PATH=$(find build/$APP_NAME.xcarchive/Products/Applications -name "$APP_NAME.app" -maxdepth 2 | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "::error::App not found in archive"
+            ls -R build/$APP_NAME.xcarchive/Products
+            exit 1
+          fi
+          SPARKLE="$APP_PATH/Contents/Frameworks/Sparkle.framework"
+          if [ -d "$SPARKLE" ]; then
+            echo "Removing $SPARKLE"
+            rm -rf "$SPARKLE"
+            # Re-sign the app since its frameworks contents changed
+            codesign --force --options runtime --timestamp \
+              --sign "Apple Distribution" \
+              --entitlements EaselWall-AppStore.entitlements \
+              "$APP_PATH" || \
+              echo "(non-fatal: re-sign may not be needed if exportArchive re-signs)"
+          else
+            echo "Sparkle not embedded (good)."
+          fi
+
       - name: Export for App Store
         run: |
           cat > build/ExportOptions.plist <<EOF

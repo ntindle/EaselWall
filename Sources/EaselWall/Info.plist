@@ -22,6 +22,8 @@
 	<true/>
 	<key>LSMultipleInstancesProhibited</key>
 	<true/>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.lifestyle</string>
 	<key>SUFeedURL</key>
 	<string>https://easelwall.com/appcast.xml</string>
 	<key>SUPublicEDKey</key>

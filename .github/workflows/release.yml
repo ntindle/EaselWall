@@ -56,10 +56,43 @@ jobs:
             OTHER_CODE_SIGN_FLAGS="--keychain $RUNNER_TEMP/app-signing.keychain-db" \
             build
 
+      - name: Re-sign Sparkle and embedded binaries with Developer ID
+        run: |
+          # Sparkle ships its XPC services pre-signed (ad-hoc) and they
+          # aren't replaced during xcodebuild build. Re-sign every embedded
+          # binary inside-out with Developer ID + secure timestamp + hardened
+          # runtime so notarization accepts the bundle.
+          APP_PATH="build/DerivedData/Build/Products/Release/$APP_NAME.app"
+          IDENTITY="Developer ID Application"
+          KEYCHAIN="$RUNNER_TEMP/app-signing.keychain-db"
+          sign() {
+            codesign --force --options runtime --timestamp \
+              --sign "$IDENTITY" --keychain "$KEYCHAIN" "$@"
+          }
+          # XPC services
+          for xpc in "$APP_PATH"/Contents/Frameworks/Sparkle.framework/Versions/B/XPCServices/*.xpc; do
+            sign "$xpc"
+          done
+          # Helper binaries inside Sparkle
+          for helper in Autoupdate "Updater.app"; do
+            target="$APP_PATH/Contents/Frameworks/Sparkle.framework/Versions/B/$helper"
+            [ -e "$target" ] && sign "$target"
+          done
+          # Sparkle framework itself
+          sign "$APP_PATH/Contents/Frameworks/Sparkle.framework"
+          # Widget extension
+          if [ -d "$APP_PATH/Contents/PlugIns/EaselWallControlWidget.appex" ]; then
+            sign --entitlements EaselWallControlWidget.entitlements \
+              "$APP_PATH/Contents/PlugIns/EaselWallControlWidget.appex"
+          fi
+          # Main app, last
+          sign --entitlements EaselWall.entitlements "$APP_PATH"
+
       - name: Verify code signature
         run: |
           APP_PATH="build/DerivedData/Build/Products/Release/$APP_NAME.app"
-          codesign --verify --deep --strict "$APP_PATH"
+          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+          codesign --display --verbose=2 "$APP_PATH" 2>&1 | grep -E "Authority|TeamIdentifier|Timestamp"
           echo "Code signature verified"
 
       - name: Create DMG

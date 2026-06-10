@@ -40,6 +40,7 @@ targets:
       properties:
         LSUIElement: true
         LSMultipleInstancesProhibited: true
+        LSApplicationCategoryType: public.app-category.lifestyle
         CFBundleName: "EaselWall"
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
@@ -80,6 +81,8 @@ targets:
         CFBundleDisplayName: "EaselWall Widget"
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.ntindle.EaselWall.ControlWidget
