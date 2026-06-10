@@ -16,6 +16,7 @@ struct EaselWallNextPaintingControl: ControlWidget {
     }
 }
 
+@main
 @available(macOS 26.0, *)
 struct EaselWallWidgetBundle: WidgetBundle {
     var body: some Widget {
