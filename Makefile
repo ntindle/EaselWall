@@ -1,4 +1,4 @@
-.PHONY: build release dmg sign notarize sha256 clean generate-project archive export-appstore upload-appstore screenshots screenshots-clean
+.PHONY: build release dmg sign notarize sha256 clean generate-project generate-appstore-project archive export-appstore upload-appstore screenshots screenshots-clean
 
 APP_NAME = EaselWall
 BUNDLE_ID = com.ntindle.EaselWall
@@ -11,6 +11,12 @@ IDENTITY ?= Developer ID Application
 
 generate-project:
 	xcodegen generate
+
+APPSTORE_PROJECT_SPEC = $(BUILD_DIR)/project-appstore.yml
+
+generate-appstore-project:
+	./scripts/prepare_appstore_project.py "$(APPSTORE_PROJECT_SPEC)"
+	xcodegen generate --spec "$(APPSTORE_PROJECT_SPEC)" --project . --project-root .
 
 build: generate-project
 	xcodebuild -project EaselWall.xcodeproj \
@@ -69,7 +75,7 @@ ARCHIVE_PATH = $(BUILD_DIR)/$(APP_NAME).xcarchive
 EXPORT_PATH = $(BUILD_DIR)/appstore-export
 EXPORT_OPTIONS = $(BUILD_DIR)/ExportOptions-AppStore.plist
 
-archive: generate-project
+archive: generate-appstore-project
 	xcodebuild -project EaselWall.xcodeproj \
 		-scheme $(SCHEME) \
 		-configuration AppStore \
