@@ -41,6 +41,7 @@ targets:
         LSUIElement: true
         LSMultipleInstancesProhibited: true
         LSApplicationCategoryType: public.app-category.lifestyle
+        ITSAppUsesNonExemptEncryption: false
         CFBundleName: "EaselWall"
         CFBundleShortVersionString: "$(MARKETING_VERSION)"
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"

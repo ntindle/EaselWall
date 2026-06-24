@@ -33,8 +33,10 @@ jobs:
       - name: Install XcodeGen
         run: brew install xcodegen
 
-      - name: Generate Xcode project
-        run: xcodegen generate
+      - name: Generate App Store Xcode project
+        run: |
+          scripts/prepare_appstore_project.py build/project-appstore.yml
+          xcodegen generate --spec build/project-appstore.yml --project . --project-root .
 
       - name: Import Apple Distribution certificate
         env:
@@ -87,40 +89,24 @@ jobs:
             DEVELOPMENT_TEAM=$DEVELOPMENT_TEAM \
             archive
 
-      - name: Weaken + strip Sparkle in App Store archive
+      - name: Verify App Store archive has no Sparkle linkage
         run: |
-          # Sparkle is gated by #if !APPSTORE so the binary has no symbol
-          # references to it, but SPM still (a) hard-links it as a required
-          # dylib and (b) embeds the framework. The embedded framework's XPC
-          # services trip App Store validation, so we remove it -- but a plain
-          # removal leaves a non-weak load command that makes dyld abort at
-          # launch ("Library not loaded: @rpath/Sparkle.framework"), which is
-          # exactly why the first submission crashed and was rejected.
-          # Fix: flip the Sparkle load command to weak (XcodeGen can't weak-link
-          # an SPM product) AND remove the framework, then re-sign.
           APP_PATH=$(find build/$APP_NAME.xcarchive/Products/Applications -name "$APP_NAME.app" -maxdepth 2 | head -1)
           if [ -z "$APP_PATH" ]; then
             echo "::error::App not found in archive"
             ls -R build/$APP_NAME.xcarchive/Products
             exit 1
           fi
-          # 1. Make the Sparkle dependency a weak link (patch the Mach-O).
-          python3 scripts/weaken-sparkle.py "$APP_PATH/Contents/MacOS/$APP_NAME"
-          # 2. Remove the embedded framework.
-          SPARKLE="$APP_PATH/Contents/Frameworks/Sparkle.framework"
-          if [ -d "$SPARKLE" ]; then
-            echo "Removing $SPARKLE"
-            rm -rf "$SPARKLE"
-          else
-            echo "Sparkle not embedded."
+          if otool -L "$APP_PATH/Contents/MacOS/$APP_NAME" | grep -q Sparkle; then
+            echo "::error::App Store binary still links Sparkle"
+            otool -L "$APP_PATH/Contents/MacOS/$APP_NAME"
+            exit 1
           fi
-          # 3. Re-sign: the Mach-O edit and framework removal invalidate the
-          #    signature (exportArchive also re-signs, this is belt-and-suspenders).
-          codesign --force --options runtime --timestamp \
-            --sign "Apple Distribution" \
-            --entitlements EaselWall-AppStore.entitlements \
-            "$APP_PATH" || \
-            echo "(non-fatal: exportArchive re-signs)"
+          if [ -d "$APP_PATH/Contents/Frameworks/Sparkle.framework" ]; then
+            echo "::error::Sparkle is still embedded in the App Store archive"
+            exit 1
+          fi
+          echo "App Store archive has no Sparkle linkage."
 
       - name: Export for App Store
         run: |

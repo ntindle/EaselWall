@@ -24,6 +24,8 @@
 	<true/>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.lifestyle</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>SUFeedURL</key>
 	<string>https://easelwall.com/appcast.xml</string>
 	<key>SUPublicEDKey</key>
