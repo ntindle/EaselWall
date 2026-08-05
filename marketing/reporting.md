@@ -3,8 +3,8 @@
 The supported reporting path is the self-contained
 `scripts/app_store_reports.py` CLI. It requests Apple's Analytics Reports,
 downloads and verifies private source files, canonicalizes corrections, prints
-a compact `$99` progress bar, and writes a weekly Markdown report. No hosted
-analytics service is required.
+a compact `$99` progress bar for the trailing 365 days, and writes a weekly
+Markdown report. No hosted analytics service is required.
 
 ## One-time setup
 
@@ -69,6 +69,16 @@ python3 scripts/app_store_reports.py fetch --access-type ONGOING
 python3 scripts/app_store_reports.py report
 ```
 
+`report` defaults to the inclusive 365-day window ending on `--as-of` (today
+when omitted). This rolling view matches the operating goal of earning at least
+$99 in proceeds in any trailing year, even when the window crosses January 1.
+For tax or calendar-year comparison, use either:
+
+```sh
+python3 scripts/app_store_reports.py report --period calendar-year
+python3 scripts/app_store_reports.py report --year 2026
+```
+
 Without `--access-type`, `fetch` prefers an active `ONGOING` request and
 falls back to `ONE_TIME_SNAPSHOT`. The explicit commands above prevent the
 initial historical snapshot from being accidentally skipped.
@@ -100,20 +110,33 @@ That directory is gitignored. Existing files are reused only when the stored
 compressed checksum, size, decompressed SHA-256, and source metadata all match,
 and the readable TSV exactly matches normalization of the Apple-MD5-verified
 gzip. Otherwise a newly downloaded and verified segment replaces them.
-Sidecars do not contain signed URLs. Access type and request ID are separate
-path components. Root `latest-summary.json` identifies the one request scope
-fetched most recently. If Standard is still pending, it records
+Sidecars do not contain signed URLs. They do contain the resolved App Store app
+ID and bundle ID; offline summaries require both to match EaselWall. When a
+Purchases row exposes Apple's `App Apple Identifier` field, its value must also
+match EaselWall's Apple ID (`6778701883`). A mismatch stops reporting instead
+of allowing another app's rows into the total. Access type and request ID are
+separate path components. Root `latest-summary.json` records the same app and
+rolling-window scope for the request fetched most recently. If Standard is
+still pending, it records
 `standardDataAvailable: false` with null totals so an older dollar value cannot
 look current. The offline `report` command is the combined correction-aware
 view across the archive.
 
+App identity was added in sidecar schema version 2. On the first run after this
+upgrade, fetch both `ONE_TIME_SNAPSHOT` and `ONGOING` again before reporting;
+segments with older unscoped sidecars are re-downloaded and replaced rather
+than trusted.
+
 `report` is offline and needs no Apple credentials. It writes:
 
 ```text
-marketing/reports/app-store-connect/canonical/purchases-YYYY.tsv
-marketing/reports/app-store-connect/canonical/campaigns-YYYY.tsv
+marketing/reports/app-store-connect/canonical/purchases-trailing-365-YYYY-MM-DD.tsv
+marketing/reports/app-store-connect/canonical/campaigns-trailing-365-YYYY-MM-DD.tsv
 marketing/reports/app-store-connect/weekly/easelwall-app-store-YYYY-MM-DD.md
 ```
+
+Calendar-year mode retains the shorter `purchases-YYYY.tsv` and
+`campaigns-YYYY.tsv` names.
 
 The purchases TSV is authoritative Standard data. The campaigns TSV is a
 separate, privacy-limited Detailed view and is skipped when Detailed is not
@@ -144,9 +167,17 @@ Detailed are canonicalized independently. Within each report, the CLI selects
 one logical dataset per event date using report and instance identity:
 
 1. Newest `processingDate` wins.
-2. If processing dates tie, `ONGOING` wins over `ONE_TIME_SNAPSHOT`.
-3. Identical same-rank instances are deduplicated; conflicting same-rank
-   instances stop the report for investigation instead of choosing arbitrarily.
+2. `ONE_TIME_SNAPSHOT` and `ONGOING` have equal authority when their
+   `processingDate` values tie and both contain that event `Date`.
+3. Exact parsed contents for that shared event `Date` are deduplicated. Any
+   difference stops the report for investigation instead of selecting one
+   request arbitrarily.
+
+Non-overlapping Date batches coexist. Apple defines each instance as one or
+more Date batches, so absence of a Date from an instance does not assert a
+zero-value replacement for that Date. This matters when the historical
+snapshot and recent ongoing feed are created on the same processing date but
+cover different ranges.
 
 Only Purchases Standard contributes signed `Purchases` and `Proceeds in USD` to
 the revenue total. Negative purchase rows count as refunds; partial refunds can
@@ -174,24 +205,25 @@ The built-in terminal, canonical TSV, and Markdown report are the supported
 path. These optional CLIs are useful for manual inspection and are not runtime
 dependencies.
 
-Open the correction-safe canonical view interactively with VisiData:
+Open the default rolling correction-safe canonical view interactively with
+VisiData (substitute the report's current end date):
 
 ```sh
-vd marketing/reports/app-store-connect/canonical/purchases-2026.tsv
+vd marketing/reports/app-store-connect/canonical/purchases-trailing-365-2026-08-05.tsv
 ```
 
 Run ad-hoc revenue SQL against that same canonical file with DuckDB:
 
 ```sh
-duckdb -c "SELECT sum(Purchases) AS purchases, round(sum(\"Proceeds in USD\"), 2) AS proceeds FROM read_csv('marketing/reports/app-store-connect/canonical/purchases-2026.tsv', delim='\t', header=true)"
+duckdb -c "SELECT sum(Purchases) AS purchases, round(sum(\"Proceeds in USD\"), 2) AS proceeds FROM read_csv('marketing/reports/app-store-connect/canonical/purchases-trailing-365-2026-08-05.tsv', delim='\t', header=true)"
 ```
 
 Inspect the separate, privacy-limited campaign view without
 mixing it into revenue totals:
 
 ```sh
-vd marketing/reports/app-store-connect/canonical/campaigns-2026.tsv
-duckdb -c "SELECT Campaign, sum(Purchases) AS purchases, round(sum(\"Proceeds in USD\"), 2) AS proceeds FROM read_csv('marketing/reports/app-store-connect/canonical/campaigns-2026.tsv', delim='\t', header=true) GROUP BY Campaign ORDER BY proceeds DESC"
+vd marketing/reports/app-store-connect/canonical/campaigns-trailing-365-2026-08-05.tsv
+duckdb -c "SELECT Campaign, sum(Purchases) AS purchases, round(sum(\"Proceeds in USD\"), 2) AS proceeds FROM read_csv('marketing/reports/app-store-connect/canonical/campaigns-trailing-365-2026-08-05.tsv', delim='\t', header=true) GROUP BY Campaign ORDER BY proceeds DESC"
 ```
 
 Do not point aggregate queries at `downloads/`; it intentionally retains

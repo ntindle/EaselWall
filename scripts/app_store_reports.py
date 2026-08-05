@@ -23,7 +23,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, timedelta
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any, Callable, Iterator, Mapping, Sequence, TextIO
@@ -33,6 +33,7 @@ API_BASE_URL = "https://api.appstoreconnect.apple.com"
 API_HOST = "api.appstoreconnect.apple.com"
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BUNDLE_ID = "com.ntindle.EaselWall"
+DEFAULT_APP_ID = "6778701883"
 REQUIRED_ACCESS_TYPES = ("ONE_TIME_SNAPSHOT", "ONGOING")
 TARGET_REPORTS = (
     "App Store Discovery and Engagement Detailed",
@@ -49,6 +50,8 @@ DEFAULT_REPORT_OUTPUT = ROOT / "marketing" / "reports" / "app-store-connect"
 APP_ID_PATTERN = re.compile(r"^[A-Za-z0-9-]+$")
 CHECKSUM_PATTERN = re.compile(r"^[a-fA-F0-9]{32}$")
 CAMPAIGN_GROUPS = ("tt_organic", "tt_creator", "tt_paid", "unattributed", "other")
+PERIOD_TRAILING_365 = "trailing-365"
+PERIOD_CALENDAR_YEAR = "calendar-year"
 
 EXIT_OK = 0
 EXIT_CONFIGURATION = 2
@@ -139,9 +142,59 @@ class CampaignTotals:
     rows: int = 0
 
 
+@dataclass(frozen=True)
+class ReportingPeriod:
+    mode: str
+    start_date: date
+    end_date: date
+
+    def __post_init__(self) -> None:
+        if self.mode not in (PERIOD_TRAILING_365, PERIOD_CALENDAR_YEAR):
+            raise ValueError(f"Unsupported reporting period mode: {self.mode}")
+        if self.start_date > self.end_date:
+            raise ValueError("Reporting period start must not follow its end")
+
+    @classmethod
+    def trailing_365(cls, as_of: date) -> ReportingPeriod:
+        return cls(
+            mode=PERIOD_TRAILING_365,
+            start_date=as_of - timedelta(days=364),
+            end_date=as_of,
+        )
+
+    @classmethod
+    def calendar_year(cls, year: int) -> ReportingPeriod:
+        return cls(
+            mode=PERIOD_CALENDAR_YEAR,
+            start_date=date(year, 1, 1),
+            end_date=date(year, 12, 31),
+        )
+
+    def contains(self, event_date: date) -> bool:
+        return self.start_date <= event_date <= self.end_date
+
+    @property
+    def label(self) -> str:
+        if self.mode == PERIOD_TRAILING_365:
+            return (
+                "trailing 365 days "
+                f"({self.start_date.isoformat()} through {self.end_date.isoformat()})"
+            )
+        return f"calendar year {self.start_date.year}"
+
+    @property
+    def output_suffix(self) -> str:
+        if self.mode == PERIOD_TRAILING_365:
+            return f"trailing-365-{self.end_date.isoformat()}"
+        return str(self.start_date.year)
+
+
 @dataclass
 class PurchaseSummary:
-    year: int
+    year: int | None = None
+    period: ReportingPeriod | None = None
+    app_id: str = DEFAULT_APP_ID
+    bundle_id: str = DEFAULT_BUNDLE_ID
     standard_available: bool = False
     campaign_available: bool = False
     files: int = 0
@@ -164,6 +217,14 @@ class PurchaseSummary:
     canonical_rows: list[PurchaseRow] = field(default_factory=list)
     campaign_canonical_rows: list[PurchaseRow] = field(default_factory=list)
 
+    def __post_init__(self) -> None:
+        if self.period is None:
+            if self.year is None:
+                raise ValueError("PurchaseSummary requires a year or reporting period")
+            self.period = ReportingPeriod.calendar_year(self.year)
+        elif self.year is None and self.period.mode == PERIOD_CALENDAR_YEAR:
+            self.year = self.period.start_date.year
+
 
 @dataclass(frozen=True)
 class PurchaseDataset:
@@ -174,13 +235,8 @@ class PurchaseDataset:
     instance_id: str
 
     @property
-    def rank(self) -> tuple[date, int]:
-        access_priority = {
-            "ONE_TIME_SNAPSHOT": 1,
-            "ONGOING": 2,
-            "EXPLICIT": 3,
-        }.get(self.access_type, 0)
-        return self.processing_date, access_priority
+    def rank(self) -> date:
+        return self.processing_date
 
     @property
     def identity(self) -> tuple[str, str, str, str]:
@@ -194,6 +250,7 @@ class PurchaseRow:
     proceeds: Decimal
     campaign: str
     source_path: Path
+    content_signature: tuple[tuple[str, str], ...]
 
 
 def load_credentials(environ: Mapping[str, str]) -> Credentials:
@@ -410,10 +467,12 @@ def _parse_app(item: dict[str, Any]) -> AppInfo:
         raise DataError("App Store Connect returned an invalid app record")
     name = attributes.get("name")
     bundle_id = attributes.get("bundleId")
+    if not isinstance(bundle_id, str) or not bundle_id:
+        raise DataError("App Store Connect app record is missing its bundle ID")
     return AppInfo(
         app_id=app_id,
         name=name if isinstance(name, str) else "EaselWall",
-        bundle_id=bundle_id if isinstance(bundle_id, str) else DEFAULT_BUNDLE_ID,
+        bundle_id=bundle_id,
     )
 
 
@@ -432,7 +491,15 @@ def resolve_app(
         data = response.get("data")
         if not isinstance(data, dict):
             raise DataError("App Store Connect app lookup is missing a data object")
-        return _parse_app(data)
+        app = _parse_app(data)
+        if app.app_id != app_id:
+            raise DataError("App Store Connect returned a different app ID than requested")
+        if app.bundle_id != bundle_id:
+            raise DataError(
+                f"App Store Connect app {app.app_id} has bundle ID {app.bundle_id}, "
+                f"not expected EaselWall bundle ID {bundle_id}"
+            )
+        return app
 
     query = urllib.parse.urlencode({"filter[bundleId]": bundle_id, "limit": "2"})
     items = client.get_collection(f"/v1/apps?{query}")
@@ -440,7 +507,13 @@ def resolve_app(
         raise DataError(f"No App Store Connect app found for bundle ID {bundle_id}")
     if len(items) > 1:
         raise DataError(f"Multiple App Store Connect apps found for bundle ID {bundle_id}")
-    return _parse_app(items[0])
+    app = _parse_app(items[0])
+    if app.bundle_id != bundle_id:
+        raise DataError(
+            f"App Store Connect lookup returned bundle ID {app.bundle_id}, "
+            f"not requested bundle ID {bundle_id}"
+        )
+    return app
 
 
 def list_report_requests(
@@ -856,6 +929,7 @@ def existing_segment_is_verified(
 def download_segment(
     client: AppStoreConnectClient,
     *,
+    app: AppInfo,
     request: ReportRequest,
     report: AnalyticsReport,
     instance: ReportInstance,
@@ -880,7 +954,9 @@ def download_segment(
         / f"segment-{safe_component(segment.segment_id)}.tsv"
     )
     expected_metadata = {
-        "schemaVersion": 1,
+        "schemaVersion": 2,
+        "appId": app.app_id,
+        "bundleId": app.bundle_id,
         "requestId": request.request_id,
         "accessType": request.access_type,
         "reportId": report.report_id,
@@ -934,6 +1010,7 @@ def download_target_reports(
     client: AppStoreConnectClient,
     requests: Sequence[ReportRequest],
     *,
+    app: AppInfo,
     access_type: str,
     output_dir: Path,
     output: TextIO,
@@ -986,6 +1063,7 @@ def download_target_reports(
                 segment_count += 1
                 path, _ = download_segment(
                     client,
+                    app=app,
                     request=request,
                     report=report,
                     instance=instance,
@@ -1131,44 +1209,29 @@ def _verify_managed_tsv(path: Path, metadata: Mapping[str, Any]) -> None:
         raise DataError(f"TSV checksum mismatch for {path}")
 
 
-def _event_financial_signature(
-    rows: Sequence[PurchaseRow], *, detailed: bool
-) -> tuple[Any, ...]:
-    """Return a segmentation-independent financial signature for one event date."""
+def _event_content_signature(rows: Sequence[PurchaseRow]) -> tuple[Any, ...]:
+    """Return an order-independent content signature for one event date."""
 
-    if not detailed:
-        return (
-            sum((row.purchases for row in rows), 0),
-            sum((row.proceeds for row in rows), Decimal("0")),
-        )
-    grouped: dict[str, tuple[int, Decimal]] = {}
-    for row in rows:
-        purchases, proceeds = grouped.get(row.campaign, (0, Decimal("0")))
-        grouped[row.campaign] = purchases + row.purchases, proceeds + row.proceeds
-    return tuple(
-        (campaign, purchases, proceeds)
-        for campaign, (purchases, proceeds) in sorted(grouped.items())
-    )
+    return tuple(sorted(row.content_signature for row in rows))
 
 
 def _canonical_rows(
     rows_by_dataset: Mapping[PurchaseDataset, list[PurchaseRow]],
     *,
-    year: int,
+    period: ReportingPeriod,
     report_name: str,
 ) -> tuple[list[PurchaseRow], int, set[Path]]:
-    """Select correction-safe rows, rejecting ambiguous same-rank conflicts."""
+    """Select rows per event Date, rejecting ambiguous same-date conflicts."""
 
     datasets_by_event_date: dict[date, set[PurchaseDataset]] = {}
     for dataset, rows in rows_by_dataset.items():
         for row in rows:
-            if row.event_date.year == year:
+            if period.contains(row.event_date):
                 datasets_by_event_date.setdefault(row.event_date, set()).add(dataset)
 
     canonical: list[PurchaseRow] = []
     selected_paths: set[Path] = set()
     superseded_rows = 0
-    detailed = report_name == PURCHASES_DETAILED_REPORT
     for event_date in sorted(datasets_by_event_date):
         candidates = datasets_by_event_date[event_date]
         winning_rank = max(dataset.rank for dataset in candidates)
@@ -1178,20 +1241,19 @@ def _canonical_rows(
         )
         if len(tied) > 1:
             signatures = {
-                _event_financial_signature(
+                _event_content_signature(
                     [
                         row
                         for row in rows_by_dataset[dataset]
                         if row.event_date == event_date
-                    ],
-                    detailed=detailed,
+                    ]
                 )
                 for dataset in tied
             }
             if len(signatures) > 1:
                 raise DataError(
                     f"Conflicting {report_name} instances share processingDate "
-                    f"{winning_rank[0].isoformat()} for event Date "
+                    f"{winning_rank.isoformat()} for event Date "
                     f"{event_date.isoformat()}"
                 )
         selected_dataset = tied[0]
@@ -1212,10 +1274,28 @@ def _canonical_rows(
     return canonical, superseded_rows, selected_paths
 
 
-def summarize_purchases(input_path: Path, *, year: int) -> PurchaseSummary:
+def summarize_purchases(
+    input_path: Path,
+    *,
+    year: int | None = None,
+    period: ReportingPeriod | None = None,
+    expected_app_id: str = DEFAULT_APP_ID,
+    expected_bundle_id: str = DEFAULT_BUNDLE_ID,
+) -> PurchaseSummary:
     """Build independent Standard totals and Detailed campaign attribution."""
 
-    summary = PurchaseSummary(year=year)
+    if period is not None and year is not None:
+        raise ConfigurationError("Specify a reporting period or calendar year, not both")
+    if period is None:
+        if year is None:
+            raise ConfigurationError("A reporting period or calendar year is required")
+        period = ReportingPeriod.calendar_year(year)
+    summary = PurchaseSummary(
+        year=year,
+        period=period,
+        app_id=expected_app_id,
+        bundle_id=expected_bundle_id,
+    )
     explicit_file = input_path.is_file()
     base_fields = {"Date", "Purchases", "Proceeds in USD"}
     report_names = (PURCHASES_STANDARD_REPORT, PURCHASES_DETAILED_REPORT)
@@ -1226,10 +1306,8 @@ def summarize_purchases(input_path: Path, *, year: int) -> PurchaseSummary:
         report_name: [] for report_name in report_names
     }
     file_counts = {report_name: 0 for report_name in report_names}
-    seen_segments: dict[tuple[str, str, str], tuple[str, Path]] = {}
-    dataset_provenance: dict[
-        tuple[str, str, str], tuple[str, str, str]
-    ] = {}
+    seen_segments: dict[tuple[str, str, str, str, str, str], tuple[str, Path]] = {}
+    dataset_provenance: dict[tuple[str, str, str, str, str], str] = {}
 
     for path in _tsv_paths(input_path):
         try:
@@ -1254,6 +1332,22 @@ def summarize_purchases(input_path: Path, *, year: int) -> PurchaseSummary:
 
             if metadata is not None:
                 _verify_managed_tsv(path, metadata)
+                metadata_app_id = metadata.get("appId")
+                metadata_bundle_id = metadata.get("bundleId")
+                if not isinstance(metadata_app_id, str) or not metadata_app_id:
+                    raise DataError(f"Missing appId in {_metadata_path(path)}")
+                if not isinstance(metadata_bundle_id, str) or not metadata_bundle_id:
+                    raise DataError(f"Missing bundleId in {_metadata_path(path)}")
+                if metadata_app_id != expected_app_id:
+                    raise DataError(
+                        f"Report {path} belongs to App Store app {metadata_app_id}, "
+                        f"not EaselWall app {expected_app_id}"
+                    )
+                if metadata_bundle_id != expected_bundle_id:
+                    raise DataError(
+                        f"Report {path} belongs to bundle {metadata_bundle_id}, "
+                        f"not EaselWall bundle {expected_bundle_id}"
+                    )
                 raw_processing_date = metadata.get("processingDate")
                 access_type = metadata.get("accessType")
                 request_id = metadata.get("requestId")
@@ -1275,18 +1369,22 @@ def summarize_purchases(input_path: Path, *, year: int) -> PurchaseSummary:
                     raise DataError(f"Missing dataset identity in {_metadata_path(path)}")
                 if not isinstance(request_id, str) or not request_id:
                     raise DataError(f"Missing requestId in {_metadata_path(path)}")
-                provenance_key = (report_name, str(report_id), str(instance_id))
-                provenance = (
-                    raw_processing_date,
-                    str(access_type),
+                provenance_key = (
+                    report_name,
                     request_id,
+                    str(access_type),
+                    str(report_id),
+                    str(instance_id),
                 )
                 previous_provenance = dataset_provenance.get(provenance_key)
-                if previous_provenance is not None and previous_provenance != provenance:
+                if (
+                    previous_provenance is not None
+                    and previous_provenance != raw_processing_date
+                ):
                     raise DataError(
                         f"Inconsistent metadata for report instance {instance_id}"
                     )
-                dataset_provenance[provenance_key] = provenance
+                dataset_provenance[provenance_key] = raw_processing_date
                 dataset = PurchaseDataset(
                     processing_date=processing_date,
                     access_type=str(access_type),
@@ -1294,7 +1392,14 @@ def summarize_purchases(input_path: Path, *, year: int) -> PurchaseSummary:
                     report_id=str(report_id),
                     instance_id=str(instance_id),
                 )
-                segment_key = tuple(str(value) for value in segment_values)
+                segment_key = (
+                    report_name,
+                    request_id,
+                    str(access_type),
+                    str(report_id),
+                    str(instance_id),
+                    str(segment_id),
+                )
                 segment_fingerprint = str(metadata["compressedMd5"]).casefold()
                 previous = seen_segments.get(segment_key)
                 if previous is not None:
@@ -1308,6 +1413,14 @@ def summarize_purchases(input_path: Path, *, year: int) -> PurchaseSummary:
             file_counts[report_name] += 1
             file_rows: list[PurchaseRow] = []
             for line_number, row in enumerate(reader, start=2):
+                if "App Apple Identifier" in fields:
+                    row_app_id = (row.get("App Apple Identifier") or "").strip()
+                    if row_app_id != expected_app_id:
+                        raise DataError(
+                            f"Unexpected 'App Apple Identifier' in {path} at line "
+                            f"{line_number}: expected {expected_app_id}, got "
+                            f"{row_app_id or '<blank>'}"
+                        )
                 raw_date = (row.get("Date") or "").strip()
                 try:
                     row_date = date.fromisoformat(raw_date)
@@ -1342,15 +1455,23 @@ def summarize_purchases(input_path: Path, *, year: int) -> PurchaseSummary:
                             else "unattributed"
                         ),
                         source_path=path,
+                        content_signature=tuple(
+                            (field, row.get(field) or "") for field in sorted(fields)
+                        ),
                     )
                 )
 
             if metadata is None:
+                if not explicit_file and "App Apple Identifier" not in fields:
+                    raise DataError(
+                        f"Cannot verify EaselWall app identity for unmetadataed {path}; "
+                        "pass one explicit TSV or use files produced by the fetch command"
+                    )
                 unmanaged_files[report_name].append(path)
                 processing_date = (
                     max(row.event_date for row in file_rows)
                     if file_rows
-                    else date(year, 1, 1)
+                    else period.start_date
                 )
                 dataset = PurchaseDataset(
                     processing_date=processing_date,
@@ -1379,7 +1500,7 @@ def summarize_purchases(input_path: Path, *, year: int) -> PurchaseSummary:
 
     standard_rows, summary.superseded_rows, standard_paths = _canonical_rows(
         rows_by_report[PURCHASES_STANDARD_REPORT],
-        year=year,
+        period=period,
         report_name=PURCHASES_STANDARD_REPORT,
     )
     summary.canonical_rows.extend(standard_rows)
@@ -1393,7 +1514,7 @@ def summarize_purchases(input_path: Path, *, year: int) -> PurchaseSummary:
 
     campaign_rows, summary.campaign_superseded_rows, campaign_paths = _canonical_rows(
         rows_by_report[PURCHASES_DETAILED_REPORT],
-        year=year,
+        period=period,
         report_name=PURCHASES_DETAILED_REPORT,
     )
     summary.campaign_canonical_rows.extend(campaign_rows)
@@ -1426,9 +1547,16 @@ def _format_percent(value: Decimal) -> str:
     return f"{value.quantize(Decimal('0.1'), rounding=ROUND_HALF_UP):,.1f}%"
 
 
+def _summary_period(summary: PurchaseSummary) -> ReportingPeriod:
+    if summary.period is None:
+        raise DataError("Purchase summary is missing its reporting period")
+    return summary.period
+
+
 def terminal_report(
     summary: PurchaseSummary, goal: Decimal, output: TextIO
 ) -> None:
+    period = _summary_period(summary)
     if summary.standard_available:
         bar, percentage = goal_progress(summary.proceeds, goal)
         print(
@@ -1437,7 +1565,7 @@ def terminal_report(
             file=output,
         )
         print(
-            f"{summary.year}: {summary.purchases} net purchase(s), "
+            f"{period.label}: {summary.purchases} net purchase(s), "
             f"{summary.refund_units} refunded unit(s), {summary.rows} canonical row(s), "
             f"{summary.superseded_rows} superseded row(s) from Standard",
             file=output,
@@ -1481,11 +1609,13 @@ def terminal_report(
 def markdown_report(
     summary: PurchaseSummary, *, goal: Decimal, as_of: date
 ) -> str:
+    period = _summary_period(summary)
     if not summary.standard_available:
         return "\n".join(
             [
                 f"# EaselWall App Store weekly report - {as_of.isoformat()}",
                 "",
+                f"- Reporting period: {period.label}",
                 "- Revenue status: **unknown/pending**",
                 "- App Store Purchases Standard: no verified dataset available",
                 "- No zero-dollar result was inferred from missing data.",
@@ -1508,7 +1638,7 @@ def markdown_report(
     lines = [
         f"# EaselWall App Store weekly report - {as_of.isoformat()}",
         "",
-        f"- Reporting year: {summary.year}",
+        f"- Reporting period: {period.label}",
         f"- Data period: {data_period}",
         f"- Net purchases: {summary.purchases}",
         f"- Refunded units: {summary.refund_units}",
@@ -1554,8 +1684,9 @@ def markdown_report(
             "rows are refunds; partial refunds can have zero purchases and negative proceeds.",
             "Standard totals and Detailed campaign attribution are canonicalized "
             "independently. For each event Date, the newest Apple processingDate wins. "
-            "ONGOING wins over ONE_TIME_SNAPSHOT on an exact tie; conflicting instances "
-            "at the same remaining rank stop the report instead of choosing a request ID.",
+            "If ONE_TIME_SNAPSHOT and ONGOING both contain that event Date at the same "
+            "processingDate, identical contents are deduplicated and any difference "
+            "stops the report for investigation. Non-overlapping Date batches coexist.",
             "",
         ]
     )
@@ -1639,12 +1770,19 @@ def write_latest_summary(
 ) -> Path:
     """Write current availability and proceeds for one isolated request scope."""
 
+    period = _summary_period(summary)
     payload = {
         "generatedOn": date.today().isoformat(),
         "scope": {
+            "appId": summary.app_id,
+            "bundleId": summary.bundle_id,
             "accessType": request.access_type,
             "requestId": request.request_id,
-            "year": summary.year,
+            "reportingPeriod": {
+                "mode": period.mode,
+                "startDate": period.start_date.isoformat(),
+                "endDate": period.end_date.isoformat(),
+            },
         },
         "totalsSource": PURCHASES_STANDARD_REPORT,
         "standardDataAvailable": summary.standard_available,
@@ -1764,9 +1902,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="report date in YYYY-MM-DD format (default: today)",
     )
     report.add_argument(
+        "--period",
+        choices=(PERIOD_TRAILING_365, PERIOD_CALENDAR_YEAR),
+        help=(
+            "accounting window (default: trailing-365; --year selects "
+            "calendar-year)"
+        ),
+    )
+    report.add_argument(
         "--year",
         type=int,
-        help="purchase year to include (default: year from --as-of)",
+        help="calendar year to include; implies --period calendar-year",
     )
     report.add_argument(
         "--goal",
@@ -1794,11 +1940,32 @@ def main(
                 if args.as_of is None
                 else parse_iso_date(args.as_of, "--as-of")
             )
-            year = as_of.year if args.year is None else args.year
-            if not 2000 <= year <= 9999:
+            if args.year is not None and not 2000 <= args.year <= 9999:
                 raise ConfigurationError("--year must be between 2000 and 9999")
+            if args.period == PERIOD_TRAILING_365 and args.year is not None:
+                raise ConfigurationError(
+                    "--year cannot be combined with --period trailing-365"
+                )
+            period_mode = args.period
+            if period_mode is None:
+                period_mode = (
+                    PERIOD_CALENDAR_YEAR
+                    if args.year is not None
+                    else PERIOD_TRAILING_365
+                )
+            if period_mode == PERIOD_CALENDAR_YEAR:
+                period = ReportingPeriod.calendar_year(
+                    as_of.year if args.year is None else args.year
+                )
+            else:
+                period = ReportingPeriod.trailing_365(as_of)
             goal = parse_goal(args.goal)
-            summary = summarize_purchases(args.input, year=year)
+            summary = summarize_purchases(
+                args.input,
+                period=period,
+                expected_app_id=args.app_id or DEFAULT_APP_ID,
+                expected_bundle_id=args.bundle_id,
+            )
             terminal_report(summary, goal, stdout)
             if not summary.standard_available:
                 raise DataError(
@@ -1810,7 +1977,7 @@ def main(
                 if args.canonical_output is not None
                 else DEFAULT_REPORT_OUTPUT
                 / "canonical"
-                / f"purchases-{year}.tsv"
+                / f"purchases-{period.output_suffix}.tsv"
             )
             canonical_changed = write_canonical_purchases(canonical_path, summary)
             canonical_action = "Wrote" if canonical_changed else "Unchanged"
@@ -1823,7 +1990,7 @@ def main(
                 if args.campaign_output is not None
                 else DEFAULT_REPORT_OUTPUT
                 / "canonical"
-                / f"campaigns-{year}.tsv"
+                / f"campaigns-{period.output_suffix}.tsv"
             )
             if summary.campaign_available:
                 campaign_changed = write_canonical_campaigns(campaign_path, summary)
@@ -1869,6 +2036,7 @@ def main(
             download_target_reports(
                 client,
                 requests,
+                app=app,
                 access_type=args.access_type,
                 output_dir=args.output_dir,
                 output=stdout,
@@ -1880,7 +2048,10 @@ def main(
                 / safe_component(selected_request.request_id)
             )
             purchase_summary = summarize_purchases(
-                purchase_scope, year=date.today().year
+                purchase_scope,
+                period=ReportingPeriod.trailing_365(date.today()),
+                expected_app_id=app.app_id,
+                expected_bundle_id=app.bundle_id,
             )
             terminal_report(purchase_summary, Decimal("99"), stdout)
             summary_path = write_latest_summary(

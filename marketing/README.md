@@ -65,10 +65,17 @@ make appstore-marketing-screenshots
 The upload-ready PNGs are written to the gitignored
 `screenshots/for-upload/` directory. They are built only from tracked website,
 icon, and painting assets; the renderer never reads raw desktop captures from
-`screenshots/`, which may contain private UI. It writes the five current files,
-removes only the two superseded generated names
-`05-two-ninety-nine-once.png` and `05-pay-once.png`, and preserves unrelated
-captures. Review all five images before uploading them in App Store Connect.
+`screenshots/`, which may contain private UI. It writes the five current files
+and a `manifest.json` containing the exact upload set and hashes. Any extra PNG
+in `screenshots/for-upload/` is moved, never deleted, to a timestamped folder
+under `screenshots/archive/for-upload/`; this prevents an obsolete screenshot
+from being uploaded accidentally. Review the five manifest entries before
+uploading them in App Store Connect.
+
+The exact US English metadata and screenshot ordering live in
+[`app-store-metadata.md`](app-store-metadata.md). Campaign links must use the
+provider token copied from EaselWall's own App Store Connect campaign-link
+generator; never infer that account-specific value.
 
 ## App Store reporting
 
@@ -100,14 +107,22 @@ make app-store-report
 The equivalent direct CLI commands and all options are documented in
 [`reporting.md`](reporting.md). Run the snapshot command once after Apple
 finishes preparing the historical feed, then use fetch plus report weekly.
+The default report window is the rolling 365 days ending today, so its `$99`
+meter matches the rolling-year operating target. Pass `--year YYYY` for a
+separate calendar-year view.
 
 Apple normally takes 24–48 hours to generate the first reports. Fetch writes
 the original gzip TSVs, readable `.tsv` copies, and `latest-summary.json` under
 the private, gitignored `marketing/reports/app-store-connect/` directory. The
 default fetch uses the ongoing request; pass
 `fetch --access-type ONE_TIME_SNAPSHOT` for the historical snapshot. Paths and
-metadata keep those request scopes separate, and corrections with newer Apple
-processing dates supersede older rows instead of being added twice.
+metadata keep those request scopes separate and bind every managed segment to
+EaselWall's App Store ID and bundle ID. Purchase rows with an Apple app
+identifier are validated too. Corrections with newer Apple processing dates
+supersede older rows instead of being added twice. When snapshot and ongoing
+instances both contain the same event Date at the same processing date, their
+rows must be identical or reporting stops for investigation; non-overlapping
+Date batches coexist.
 Until a verified Purchases Standard segment exists, revenue is shown as
 unknown/pending and no false zero-dollar report is written. Detailed campaign
 rows may remain absent or altered because of Apple's Detailed-report privacy safeguards.
@@ -141,7 +156,7 @@ Financial Reports each month and at year-end.
 claims must remain true of the shipping app. In particular:
 
 - 53 paintings are in the catalog; 30 are bundled offline.
-- Paintings do not repeat until the current collection cycle completes.
+- Paintings do not repeat within each display orientation pool until that cycle completes.
 - Rijksmuseum is an optional, keyless collection that accepts only images marked CC0 or Public Domain.
 - EaselWall renders a mat, shadow, and painting; it does not render wall-label
   text into the wallpaper.

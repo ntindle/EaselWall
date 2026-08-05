@@ -22,11 +22,11 @@ brew install ntindle/easelwall/easelwall
 - **Museum-style mats** — Each painting is presented on a soft cream mat with gallery-style spacing and a subtle shadow. Configurable color and padding.
 - **Orientation aware** — Landscape paintings go on landscape monitors, portrait paintings on portrait monitors. Automatic detection on plug/unplug.
 - **Unique per display** — Optionally show a different painting on each monitor.
-- **Daily rotation** — Pseudo-random selection with no repeats until the full cycle completes. Swaps at midnight (configurable).
-- **Set & forget** — Lives in your menu bar. Launch at login via SMAppService. launchd agent wakes the app even after reboot or sleep.
+- **Daily rotation** — Pseudo-random selection with no repeats within each display orientation pool until that cycle completes. Swaps at midnight (configurable).
+- **Set & forget** — Lives in your menu bar. Launch at login via SMAppService. In direct-download and Homebrew builds, a launchd agent schedules rotation after reboot or sleep; the Mac App Store build uses in-process scheduling.
 - **Control Center widget** — macOS Tahoe (26+) gets a native "Next Painting" button in Control Center.
 - **53 paintings** from Van Gogh, Monet, Renoir, Cezanne, Degas, Cassatt, and Seurat. 30 bundled for offline use, more fetched at runtime.
-- **Expand the collection** — Add more van Gogh works with an optional Rijksmuseum API key in Settings.
+- **Expand the collection** — Fetch more public-domain Van Gogh works from the Rijksmuseum Collection directly from Settings. No API key is required.
 - **Localized** — English, Spanish, French, German, Japanese, Chinese (Simplified), Portuguese (Brazil), Dutch.
 
 ## Screenshots
@@ -76,7 +76,7 @@ Resources/
 
 ### Artwork Copyright
 
-All paintings featured in this application are by artists who died over 100 years ago. Their works are in the **public domain worldwide** under all applicable copyright regimes.
+The bundled catalogue features paintings by artists who died at least 100 years ago. EaselWall includes remote artwork only when the source institution marks its digital reproduction with **CC0 1.0** or the **Public Domain Mark 1.0**. Copyright status can vary by jurisdiction, so EaselWall relies on the rights statement attached to each source record rather than making a blanket worldwide claim.
 
 Featured artists include Vincent van Gogh (d. 1890), Claude Monet (d. 1926), Pierre-Auguste Renoir (d. 1919), Paul Cezanne (d. 1906), Edgar Degas (d. 1917), Mary Cassatt (d. 1926), and Georges Seurat (d. 1891).
 
@@ -86,17 +86,17 @@ Digital reproductions of two-dimensional public domain artworks do not create ne
 
 ### Image Sources
 
-All artwork images are obtained under **CC0 1.0 Universal** public domain dedications:
+Artwork images are obtained only from records marked **CC0 1.0 Universal** or **Public Domain Mark 1.0**:
 
 | Institution | License | Attribution Required |
 |---|---|---|
 | [Art Institute of Chicago](https://www.artic.edu/open-access) | CC0 1.0 | No |
 | [The Metropolitan Museum of Art](https://www.metmuseum.org/about-the-met/policies-and-documents/open-access) | CC0 1.0 | No |
-| [Rijksmuseum](https://www.rijksmuseum.nl/en/research/conduct-research/data/policy) | CC0 1.0 / PDM | No (but see API terms) |
+| [Rijksmuseum](https://data.rijksmuseum.nl/policy) | CC0 1.0 / PDM 1.0 | No (but see API attribution below) |
 
 ### Rijksmuseum API Attribution
 
-Per the Rijksmuseum API Terms of Use, this application was developed using the Rijksmuseum API. Rijksmuseum collection images are credited as "Rijksmuseum Collection."
+EaselWall was **developed using the Rijksmuseum API**. The app uses the keyless Search API, framed EDM object records, and Rijksmuseum's IIIF image service. It accepts a result only when its record carries a CC0 or Public Domain Mark rights URI, and credits accepted images as "Rijksmuseum Collection."
 
 ### Disclaimer
 

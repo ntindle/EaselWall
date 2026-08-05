@@ -87,6 +87,7 @@ body::before {
 }
 .topbar-inner {
   display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 12px 24px;
   max-width: 1100px; margin: 0 auto; padding: 0 32px;
 }
 .mark {
@@ -109,7 +110,8 @@ body::before {
   font-size: 1rem;
 }
 .topbar-meta {
-  display: flex; gap: 28px; align-items: center;
+  display: flex; gap: 8px 28px; align-items: center; flex-wrap: wrap;
+  justify-content: flex-end;
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.78rem;
   color: var(--ink-mute);
@@ -245,6 +247,7 @@ footer {
 @media (max-width: 720px) {
   h1 { font-size: 2.2rem; }
   .lede { font-size: 1.1rem; }
+  .topbar-meta { justify-content: flex-start; }
   .footer-grid { grid-template-columns: 1fr; text-align: center; }
   .footer-grid .center, .footer-grid .right { text-align: center; }
 }
@@ -267,7 +270,7 @@ footer {
     <nav class="topbar-meta">
       <a href="/">Home</a>
       <a href="/privacy">Privacy</a>
-      <a href="https://github.com/ntindle/EaselWall">GitHub &#8599;</a>
+      <a href="/app-store">App Store &#8599;</a>
     </nav>
   </div>
 </header>
@@ -305,12 +308,12 @@ footer {
 
     <h3>Can I add my own paintings?</h3>
     <p>
-      Not in v1. The bundled catalogue is curated from the Art Institute of Chicago and The Met. You can add more van Gogh works with an optional Rijksmuseum API key; custom collections are on the roadmap.
+      Not in v1. The bundled catalogue is curated from the Art Institute of Chicago and The Met. You can fetch more public-domain Van Gogh works from the Rijksmuseum Collection; custom collections are on the roadmap.
     </p>
 
     <h3>How do I add paintings from the Rijksmuseum Collection?</h3>
     <p>
-      Request a free API key from <a href="https://data.rijksmuseum.nl/">data.rijksmuseum.nl</a>, then paste it into <em>Settings &rsaquo; Gallery &rsaquo; Additional Collections</em>.
+      Open <em>Settings &rsaquo; Gallery &rsaquo; Additional Collections</em> and click <em>Fetch Paintings</em>. The Rijksmuseum&rsquo;s current public data API is keyless, so no account or API key is needed. EaselWall adds only records marked CC0 or Public Domain Mark.
     </p>
 
     <h3>Where are the wallpaper images stored?</h3>
@@ -325,7 +328,7 @@ footer {
 
     <h3>Does EaselWall send my data anywhere?</h3>
     <p>
-      EaselWall sends no personal data or telemetry. It does contact museum servers to fetch public artwork, and it sends your optional Rijksmuseum API key only to Rijksmuseum. See the <a href="/privacy">privacy page</a> for the full statement.
+      EaselWall sends no personal data or telemetry. It contacts museum servers to fetch public artwork metadata and images; the Rijksmuseum flow uses no API key. See the <a href="/privacy">privacy page</a> for the full statement.
     </p>
   </div>
 </main>

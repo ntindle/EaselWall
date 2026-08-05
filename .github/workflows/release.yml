@@ -5,6 +5,13 @@ on:
     tags:
       - 'v*'
 
+# Only one release may publish mutable channels at a time. A static group is
+# intentional: version-specific groups would still allow an older tag to race
+# a newer tag while updating Homebrew and the Sparkle appcast.
+concurrency:
+  group: easelwall-release-publishing
+  cancel-in-progress: false
+
 env:
   APP_NAME: EaselWall
   SCHEME: EaselWall
@@ -16,16 +23,50 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Extract version + monotonic build number
+      - name: Resolve retry-safe release version
         run: |
-          echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
-          # Monotonic build number from epoch seconds since Jan 2025.
-          # Matches the appstore.yml derivation so Sparkle and App Store
-          # see consistent CFBundleVersion progression across releases.
-          BUILD_NUM=$(( ($(date +%s) - 1735689600) / 60 ))
-          echo "BUILD_NUM=$BUILD_NUM" >> "$GITHUB_ENV"
-          echo "Version: ${GITHUB_REF_NAME#v}, build $BUILD_NUM"
+          VERSION="${GITHUB_REF_NAME#v}"
+          SEMVER_RE='^(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})$'
+          if [[ ! "$VERSION" =~ $SEMVER_RE ]]; then
+            echo "::error::Release tags must use canonical vMAJOR.MINOR.PATCH components from 0 to 999"
+            exit 1
+          fi
+
+          # Compact, globally ordered identity: seconds since 2025, direct
+          # channel 1, and Actions attempt. This stays within Apple's observed
+          # 18-character CFBundleVersion ceiling.
+          CURRENT_EPOCH=$(date -u +%s)
+          BUILD_RUN=$((CURRENT_EPOCH - 1735689600))
+          if (( BUILD_RUN <= 837975 )); then
+            echo "::error::Build run $BUILD_RUN must exceed shipped build 837975"
+            exit 1
+          fi
+          BUILD_CHANNEL=1
+          BUILD_ATTEMPT="${GITHUB_RUN_ATTEMPT:-1}"
+          if [[ ! "$BUILD_CHANNEL" =~ ^(0|[1-9][0-9]*)$ || "$BUILD_CHANNEL" != 1 ]]; then
+            echo "::error::Release build channel must be numeric channel 1"
+            exit 1
+          fi
+          if [[ ! "$BUILD_ATTEMPT" =~ ^(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::GITHUB_RUN_ATTEMPT must be canonical numeric"
+            exit 1
+          fi
+          BUILD_NUM="$BUILD_RUN.$BUILD_CHANNEL.$BUILD_ATTEMPT"
+          BUILD_RE='^(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*)){0,2}$'
+          if [[ ! "$BUILD_NUM" =~ $BUILD_RE || ${#BUILD_NUM} -gt 18 ]]; then
+            echo "::error::CFBundleVersion must be 1-3 numeric components and at most 18 characters"
+            exit 1
+          fi
+          RELEASE_PUB_DATE=$(git show -s --format=%cD HEAD)
+          {
+            echo "VERSION=$VERSION"
+            echo "BUILD_NUM=$BUILD_NUM"
+            echo "RELEASE_PUB_DATE=$RELEASE_PUB_DATE"
+          } >> "$GITHUB_ENV"
+          echo "Version: $VERSION, build $BUILD_NUM"
 
       - name: Install XcodeGen
         run: brew install xcodegen
@@ -172,6 +213,56 @@ jobs:
           echo "DMG_SIZE=$DMG_SIZE" >> "$GITHUB_ENV"
           echo "SHA256: $SHA256, Size: $DMG_SIZE"
 
+      # Re-check after the long build/notarization phase. If a newer tag was
+      # pushed while this run was building, this run must not publish an older
+      # GitHub release, Homebrew cask, or appcast entry afterward.
+      - name: Verify tag is latest release before publishing
+        run: |
+          git fetch --prune --prune-tags --tags origin
+          TAG="v$VERSION"
+          DIRECT_REF="refs/tags/$TAG"
+          PEELED_REF="${DIRECT_REF}^{}"
+          if ! REMOTE_TAG_REFS=$(git ls-remote --exit-code origin "$DIRECT_REF" "$PEELED_REF"); then
+            echo "::error::Release tag $TAG no longer exists on origin"
+            exit 1
+          fi
+          DIRECT_COUNT=$(printf '%s\n' "$REMOTE_TAG_REFS" | awk -v ref="$DIRECT_REF" '$2 == ref { count++ } END { print count + 0 }')
+          PEELED_COUNT=$(printf '%s\n' "$REMOTE_TAG_REFS" | awk -v ref="$PEELED_REF" '$2 == ref { count++ } END { print count + 0 }')
+          if (( DIRECT_COUNT != 1 || PEELED_COUNT > 1 )); then
+            echo "::error::Remote tag $TAG did not resolve uniquely"
+            exit 1
+          fi
+          if (( PEELED_COUNT == 1 )); then
+            REMOTE_TAG_COMMIT=$(printf '%s\n' "$REMOTE_TAG_REFS" | awk -v ref="$PEELED_REF" '$2 == ref { print $1 }')
+          else
+            REMOTE_TAG_COMMIT=$(printf '%s\n' "$REMOTE_TAG_REFS" | awk -v ref="$DIRECT_REF" '$2 == ref { print $1 }')
+          fi
+          CHECKED_OUT_COMMIT=$(git rev-parse HEAD)
+          LOCAL_TAG_COMMIT=$(git rev-parse "$DIRECT_REF^{commit}")
+          if [[ "$REMOTE_TAG_COMMIT" != "$CHECKED_OUT_COMMIT" || "$LOCAL_TAG_COMMIT" != "$CHECKED_OUT_COMMIT" ]]; then
+            echo "::error::Origin tag $TAG does not resolve to the checked-out commit"
+            exit 1
+          fi
+
+          LATEST_TAG=""
+          SEMVER_TAG_RE='^v(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})$'
+          while IFS= read -r CANDIDATE; do
+            if [[ "$CANDIDATE" =~ $SEMVER_TAG_RE ]]; then
+              LATEST_TAG="$CANDIDATE"
+              break
+            fi
+          done < <(git tag --list 'v*' --sort=-version:refname)
+
+          if [[ -z "$LATEST_TAG" ]]; then
+            echo "::error::No semantic release tag exists"
+            exit 1
+          fi
+          if [[ "$LATEST_TAG" != "$TAG" ]]; then
+            echo "::error::Refusing to publish v$VERSION because $LATEST_TAG is newer"
+            exit 1
+          fi
+          echo "v$VERSION is the latest release tag"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -195,11 +286,61 @@ jobs:
         run: |
           git clone "https://x-access-token:${TAP_TOKEN}@github.com/ntindle/homebrew-easelwall.git" /tmp/tap
           cd /tmp/tap
-          sed -i '' "s/version \".*\"/version \"$VERSION\"/" Casks/easelwall.rb
-          sed -i '' "s/sha256 .*/sha256 \"$SHA256\"/" Casks/easelwall.rb
+          # BEGIN HOMEBREW VERSION HELPERS
+          single_cask_version() {
+            local file="$1" declarations values
+            declarations=$(awk '/^[[:space:]]*version[[:space:]]+/ { count++ } END { print count + 0 }' "$file")
+            if (( declarations != 1 )); then return 1; fi
+            values=$(sed -nE 's/^[[:space:]]*version "([0-9]+\.[0-9]+\.[0-9]+)"[[:space:]]*$/\1/p' "$file")
+            if [[ ! "$values" =~ ^(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})$ ]]; then
+              return 1
+            fi
+            printf '%s\n' "$values"
+          }
+          single_cask_sha256() {
+            local file="$1" declarations values
+            declarations=$(awk '/^[[:space:]]*sha256[[:space:]]+/ { count++ } END { print count + 0 }' "$file")
+            if (( declarations != 1 )); then return 1; fi
+            values=$(sed -nE 's/^[[:space:]]*sha256 "([0-9A-Fa-f]{64})"[[:space:]]*$/\1/p' "$file")
+            if [[ ! "$values" =~ ^[0-9A-Fa-f]{64}$ ]]; then return 1; fi
+            printf '%s\n' "$values"
+          }
+          version_greater_than() {
+            local left_part right_part index
+            local -a left_parts right_parts
+            IFS=. read -r -a left_parts <<< "$1"
+            IFS=. read -r -a right_parts <<< "$2"
+            for index in 0 1 2; do
+              left_part=${left_parts[$index]}
+              right_part=${right_parts[$index]}
+              if (( 10#$left_part > 10#$right_part )); then return 0; fi
+              if (( 10#$left_part < 10#$right_part )); then return 1; fi
+            done
+            return 1
+          }
+          # END HOMEBREW VERSION HELPERS
+          if ! CURRENT_VERSION=$(single_cask_version Casks/easelwall.rb); then
+            echo "::error::Homebrew cask must contain exactly one canonical version declaration"
+            exit 1
+          fi
+          if ! CURRENT_SHA256=$(single_cask_sha256 Casks/easelwall.rb); then
+            echo "::error::Homebrew cask must contain exactly one canonical sha256 declaration"
+            exit 1
+          fi
+          echo "Current Homebrew cask: $CURRENT_VERSION ($CURRENT_SHA256)"
+          if version_greater_than "$CURRENT_VERSION" "$VERSION"; then
+            echo "::error::Homebrew already publishes newer version $CURRENT_VERSION; refusing v$VERSION"
+            exit 1
+          fi
+          sed -i '' -E "s/^([[:space:]]*)version \"[0-9]+\.[0-9]+\.[0-9]+\"[[:space:]]*$/\\1version \"$VERSION\"/" Casks/easelwall.rb
+          sed -i '' -E "s/^([[:space:]]*)sha256 \"[0-9A-Fa-f]{64}\"[[:space:]]*$/\\1sha256 \"$SHA256\"/" Casks/easelwall.rb
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add Casks/easelwall.rb
+          if git diff --cached --quiet; then
+            echo "Homebrew cask is already current"
+            exit 0
+          fi
           git commit -m "Update EaselWall to $VERSION"
           git push
 
@@ -222,8 +363,55 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git pull --no-rebase origin main
-          PUB_DATE=$(date -u "+%a, %d %b %Y %H:%M:%S +0000")
-          cat > website/appcast.xml << APPCASTEOF
+          # BEGIN APPCAST VERSION HELPERS
+          single_appcast_value() {
+            local kind="$1" file="$2" tag declarations values
+            case "$kind" in
+              version) tag="sparkle:shortVersionString" ;;
+              build) tag="sparkle:version" ;;
+              *) return 1 ;;
+            esac
+            declarations=$(awk -v needle="<$tag>" '{
+              line = $0
+              while ((position = index(line, needle)) > 0) {
+                count++
+                line = substr(line, position + length(needle))
+              }
+            } END { print count + 0 }' "$file")
+            if (( declarations != 1 )); then return 1; fi
+            if [[ "$kind" == "version" ]]; then
+              values=$(sed -nE 's|.*<sparkle:shortVersionString>([^<]+)</sparkle:shortVersionString>.*|\1|p' "$file")
+              if [[ ! "$values" =~ ^[0-9A-Za-z][0-9A-Za-z.-]*$ ]]; then return 1; fi
+            else
+              values=$(sed -nE 's|.*<sparkle:version>([^<]+)</sparkle:version>.*|\1|p' "$file")
+              if [[ ! "$values" =~ ^(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*)){0,2}$ ]]; then return 1; fi
+            fi
+            printf '%s\n' "$values"
+          }
+          build_greater_or_equal() {
+            local left_part right_part index
+            local -a left_parts right_parts
+            IFS=. read -r -a left_parts <<< "$1"
+            IFS=. read -r -a right_parts <<< "$2"
+            for index in 0 1 2; do
+              left_part=${left_parts[$index]:-0}
+              right_part=${right_parts[$index]:-0}
+              if (( 10#$left_part > 10#$right_part )); then return 0; fi
+              if (( 10#$left_part < 10#$right_part )); then return 1; fi
+            done
+            return 0
+          }
+          # END APPCAST VERSION HELPERS
+          if ! CURRENT_VERSION=$(single_appcast_value version website/appcast.xml); then
+            echo "::error::Appcast must contain exactly one valid short version"
+            exit 1
+          fi
+          if ! CURRENT_BUILD=$(single_appcast_value build website/appcast.xml); then
+            echo "::error::Appcast must contain exactly one numeric sparkle build"
+            exit 1
+          fi
+          echo "Current appcast: $CURRENT_VERSION (build $CURRENT_BUILD)"
+          cat > website/appcast.xml.next << APPCASTEOF
           <?xml version="1.0" encoding="utf-8"?>
           <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
             <channel>
@@ -235,7 +423,7 @@ jobs:
                 <title>Version $VERSION</title>
                 <sparkle:version>$BUILD_NUM</sparkle:version>
                 <sparkle:shortVersionString>$VERSION</sparkle:shortVersionString>
-                <pubDate>$PUB_DATE</pubDate>
+                <pubDate>$RELEASE_PUB_DATE</pubDate>
                 <enclosure
                   url="https://github.com/ntindle/EaselWall/releases/download/v$VERSION/$APP_NAME-$VERSION.dmg"
                   type="application/octet-stream"
@@ -247,14 +435,40 @@ jobs:
           </rss>
           APPCASTEOF
           # Remove leading whitespace from heredoc
-          sed -i '' 's/^          //' website/appcast.xml
-          git add website/appcast.xml
-          if git diff --cached --quiet; then
-            echo "Appcast is already current"
+          sed -i '' 's/^          //' website/appcast.xml.next
+          if cmp -s website/appcast.xml website/appcast.xml.next; then
+            rm -f website/appcast.xml.next
+            echo "Appcast is already exactly current"
             exit 0
           fi
+          if build_greater_or_equal "$CURRENT_BUILD" "$BUILD_NUM"; then
+            echo "::error::Appcast build $CURRENT_BUILD is newer than or equal to candidate $BUILD_NUM; refusing overwrite"
+            exit 1
+          fi
+          mv website/appcast.xml.next website/appcast.xml
+          EXPECTED_APPCAST_SHA=$(shasum -a 256 website/appcast.xml | awk '{ print $1 }')
+          git add website/appcast.xml
           git commit -m "Update appcast for v$VERSION"
-          git push origin main
+          for PUSH_ATTEMPT in 1 2 3; do
+            if git push origin main; then
+              exit 0
+            fi
+            if (( PUSH_ATTEMPT == 3 )); then
+              echo "::error::Unable to push appcast after 3 merge-only attempts"
+              exit 1
+            fi
+            echo "Main advanced; fetching and merging before push retry $((PUSH_ATTEMPT + 1))"
+            git fetch origin main
+            if ! git merge --no-edit origin/main; then
+              echo "::error::Main changed incompatibly; refusing to resolve automatically"
+              exit 1
+            fi
+            MERGED_APPCAST_SHA=$(shasum -a 256 website/appcast.xml | awk '{ print $1 }')
+            if [[ "$MERGED_APPCAST_SHA" != "$EXPECTED_APPCAST_SHA" ]]; then
+              echo "::error::Concurrent merge changed appcast content; refusing to publish"
+              exit 1
+            fi
+          done
 
       - name: Cleanup keychain
         if: always()

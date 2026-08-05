@@ -8,7 +8,10 @@ the raw desktop captures in ``screenshots/``; those may contain private UI.
 from __future__ import annotations
 
 import hashlib
+import json
+import shutil
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageOps
@@ -16,6 +19,8 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont, ImageOps
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_DIR = ROOT / "screenshots" / "for-upload"
+ARCHIVE_DIR = ROOT / "screenshots" / "archive" / "for-upload"
+MANIFEST = OUTPUT_DIR / "manifest.json"
 
 WIDTH = 1280
 HEIGHT = 800
@@ -37,6 +42,9 @@ LANDSCAPE_ONE = ROOT / "website" / "assets" / "screen-landscape-1.png"
 LANDSCAPE_TWO = ROOT / "website" / "assets" / "screen-landscape-2.png"
 PORTRAIT = ROOT / "website" / "assets" / "screen-portrait.png"
 ICON = ROOT / "website" / "assets" / "icon-512.png"
+APPEARANCE_UI = ROOT / "website" / "assets" / "settings-appearance.png"
+SCHEDULE_UI = ROOT / "website" / "assets" / "settings-schedule.png"
+GALLERY_SUMMARY_UI = ROOT / "website" / "assets" / "settings-gallery-summary.png"
 
 PAINTINGS = (
     ROOT / "website" / "assets" / "cliff-walk.jpg",
@@ -50,13 +58,10 @@ PAINTINGS = (
 OUTPUTS = (
     "01-daily-masterpiece.png",
     "02-every-display.png",
-    "03-fifty-three-works.png",
-    "04-custom-museum-mats.png",
+    "03-custom-museum-mats.png",
+    "04-fifty-three-works.png",
     "05-simple-by-design.png",
 )
-
-OBSOLETE_OUTPUTS = ("05-two-ninety-nine-once.png", "05-pay-once.png")
-
 
 def font(path: Path, size: int) -> ImageFont.FreeTypeFont:
     if not path.is_file():
@@ -65,7 +70,17 @@ def font(path: Path, size: int) -> ImageFont.FreeTypeFont:
 
 
 def require_assets() -> None:
-    missing = [path for path in (LANDSCAPE_ONE, LANDSCAPE_TWO, PORTRAIT, ICON, *PAINTINGS) if not path.is_file()]
+    required = (
+        LANDSCAPE_ONE,
+        LANDSCAPE_TWO,
+        PORTRAIT,
+        ICON,
+        APPEARANCE_UI,
+        SCHEDULE_UI,
+        GALLERY_SUMMARY_UI,
+        *PAINTINGS,
+    )
+    missing = [path for path in required if not path.is_file()]
     if missing:
         formatted = "\n".join(f"  - {path.relative_to(ROOT)}" for path in missing)
         raise SystemExit(f"Missing required tracked assets:\n{formatted}")
@@ -198,8 +213,26 @@ def art_card(
     draw = ImageDraw.Draw(canvas)
     draw.rounded_rectangle(box, radius=radius, fill=mat_color)
     inner = (x1 + mat, y1 + mat, x2 - mat, y2 - mat)
-    picture = cover(painting, (inner[2] - inner[0], inner[3] - inner[1]))
+    picture = contain(
+        painting,
+        (inner[2] - inner[0], inner[3] - inner[1]),
+        mat_color,
+    )
     rounded_paste(canvas, picture, (inner[0], inner[1]), max(3, radius // 3))
+
+
+def settings_capture(
+    canvas: Image.Image,
+    capture: Path,
+    box: tuple[int, int, int, int],
+    *,
+    radius: int = 20,
+) -> None:
+    """Place a genuine, privacy-reviewed EaselWall Settings capture."""
+    x1, y1, x2, y2 = box
+    shadow(canvas, box, radius=radius, blur=18, alpha=135)
+    image = contain(capture, (x2 - x1, y2 - y1), "#242526")
+    rounded_paste(canvas, image, (x1, y1), radius)
 
 
 def screenshot_daily_masterpiece() -> Image.Image:
@@ -281,20 +314,18 @@ def screenshot_catalog() -> Image.Image:
         spacing=8,
     )
 
+    settings_capture(canvas, GALLERY_SUMMARY_UI, (456, 95, 1214, 350), radius=14)
     boxes = (
-        (477, 95, 711, 318),
-        (728, 95, 962, 318),
-        (979, 95, 1213, 318),
-        (477, 335, 711, 558),
-        (728, 335, 962, 558),
-        (979, 335, 1213, 558),
+        (477, 390, 711, 613),
+        (728, 390, 962, 613),
+        (979, 390, 1213, 613),
     )
     for painting, box in zip(PAINTINGS, boxes):
         art_card(canvas, painting, box, mat_color="#EDE4D5", mat=11, radius=9)
 
-    draw.rounded_rectangle((477, 628, 1214, 729), radius=13, fill="#2A251F", outline="#806A49", width=1)
-    draw.text((511, 649), "NO REPEATS UNTIL THE COLLECTION CYCLE COMPLETES", font=font(MONO_FONT, 17), fill=BRASS_LIGHT)
-    draw.text((511, 684), "A fresh exhibition without the feed.", font=font(SANS_FONT, 22), fill=PAPER)
+    draw.rounded_rectangle((477, 650, 1214, 751), radius=13, fill="#2A251F", outline="#806A49", width=1)
+    draw.text((511, 671), "NO REPEATS WITHIN EACH ORIENTATION CYCLE", font=font(MONO_FONT, 17), fill=BRASS_LIGHT)
+    draw.text((511, 706), "A fresh exhibition without the feed.", font=font(SANS_FONT, 22), fill=PAPER)
     return canvas
 
 
@@ -308,9 +339,9 @@ def screenshot_mats() -> Image.Image:
     draw.text((62, 184), "Choose your museum mat color and spacing—or turn it off.", font=font(SANS_FONT, 25), fill=INK_SOFT)
 
     cards = (
-        (69, 291, 413, 641, "#F2EBDD", "CREAM"),
-        (468, 291, 812, 641, "#53604D", "SAGE"),
-        (867, 291, 1211, 641, "#29323A", "SLATE"),
+        (69, 318, 218, 521, "#F2EBDD", "CREAM"),
+        (243, 318, 392, 521, "#53604D", "SAGE"),
+        (417, 318, 566, 521, "#29323A", "SLATE"),
     )
     painting = ROOT / "website" / "assets" / "cliff-walk.jpg"
     for x1, y1, x2, y2, mat_color, label in cards:
@@ -318,8 +349,9 @@ def screenshot_mats() -> Image.Image:
         label_width = draw.textbbox((0, 0), label, font=font(MONO_FONT, 16))[2]
         draw.text(((x1 + x2 - label_width) // 2, 673), label, font=font(MONO_FONT, 16), fill=INK_SOFT)
 
-    draw.rounded_rectangle((456, 739, 824, 779), radius=20, fill="#D6C3A4")
-    draw.text((486, 749), "MAT  ·  SHADOW  ·  SPACING", font=font(MONO_FONT, 16), fill=INK)
+    settings_capture(canvas, APPEARANCE_UI, (600, 248, 1212, 710), radius=18)
+    draw.rounded_rectangle((125, 585, 511, 625), radius=20, fill="#D6C3A4")
+    draw.text((155, 595), "MAT  ·  SHADOW  ·  SPACING", font=font(MONO_FONT, 16), fill=INK)
     return canvas
 
 
@@ -350,7 +382,7 @@ def screenshot_simple_by_design() -> Image.Image:
         draw.text((119, y), title, font=font(MONO_FONT, 19), fill=BRASS_LIGHT)
         draw.text((119, y + 35), description, font=font(SANS_FONT, 23), fill=PAPER)
 
-    art_card(canvas, LANDSCAPE_ONE, (750, 345, 1207, 657), mat_color="#ECE3D3", mat=12, radius=16)
+    settings_capture(canvas, SCHEDULE_UI, (570, 280, 1214, 765), radius=20)
     draw.rounded_rectangle((750, 697, 1207, 753), radius=28, fill=PAPER)
     cta = "GET EASELWALL ON THE MAC APP STORE"
     text_bounds = draw.textbbox((0, 0), cta, font=font(MONO_FONT, 15))
@@ -373,21 +405,76 @@ def save_and_validate(image: Image.Image, name: str) -> tuple[Path, str]:
     return output, digest
 
 
+def archive_stale_uploads() -> list[tuple[Path, Path]]:
+    """Move unrecognized PNGs out of the upload directory without deleting them."""
+    if not OUTPUT_DIR.is_dir():
+        return []
+
+    stale = sorted(
+        path
+        for path in OUTPUT_DIR.glob("*.png")
+        if path.name not in OUTPUTS
+    )
+    if not stale:
+        return []
+
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    destination_dir = ARCHIVE_DIR / timestamp
+    suffix = 2
+    while destination_dir.exists():
+        destination_dir = ARCHIVE_DIR / f"{timestamp}-{suffix}"
+        suffix += 1
+    destination_dir.mkdir(parents=True, exist_ok=False)
+
+    archived: list[tuple[Path, Path]] = []
+    for source in stale:
+        destination = destination_dir / source.name
+        shutil.move(str(source), str(destination))
+        archived.append((source, destination))
+    return archived
+
+
+def write_manifest(rendered: list[tuple[Path, str]]) -> None:
+    payload = {
+        "schemaVersion": 1,
+        "generatedAt": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "uploadFiles": [
+            {
+                "filename": path.name,
+                "width": WIDTH,
+                "height": HEIGHT,
+                "colorMode": "RGB",
+                "format": "PNG",
+                "sha256": digest,
+            }
+            for path, digest in rendered
+        ],
+    }
+    MANIFEST.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+
 def main() -> int:
     require_assets()
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    for obsolete_name in OBSOLETE_OUTPUTS:
-        (OUTPUT_DIR / obsolete_name).unlink(missing_ok=True)
+    for source, destination in archive_stale_uploads():
+        print(
+            "Archived stale upload candidate "
+            f"{source.relative_to(ROOT)} -> {destination.relative_to(ROOT)}"
+        )
     renderers = (
         screenshot_daily_masterpiece,
         screenshot_every_display,
-        screenshot_catalog,
         screenshot_mats,
+        screenshot_catalog,
         screenshot_simple_by_design,
     )
+    rendered: list[tuple[Path, str]] = []
     for name, renderer in zip(OUTPUTS, renderers):
         output, digest = save_and_validate(renderer(), name)
+        rendered.append((output, digest))
         print(f"Rendered {output.relative_to(ROOT)}  {WIDTH}x{HEIGHT} RGB PNG  sha256={digest[:12]}")
+    write_manifest(rendered)
+    print(f"Upload manifest: {MANIFEST.relative_to(ROOT)}")
     return 0
 
 

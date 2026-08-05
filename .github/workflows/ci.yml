@@ -31,6 +31,15 @@ jobs:
           "
           xcodegen generate
 
+      - name: Test unhosted logic (Debug)
+        run: |
+          xcodebuild -project EaselWall.xcodeproj \
+            -scheme EaselWallTests \
+            -configuration Debug \
+            -destination 'platform=macOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            test
+
       - name: Build (Debug)
         run: |
           xcodebuild -project EaselWall.xcodeproj \

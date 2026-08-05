@@ -10,7 +10,7 @@
         ["website/assets/screen-landscape-1.png"],
         ["website/assets/screen-landscape-2.png"]
       ],
-      "caption": "A quiet little museum that lives in your Mac menu bar. One new painting each morning, composed instead of cropped."
+      "caption": "A quiet little museum that lives in your Mac menu bar. With Museum Mat enabled (the default), each painting is composed instead of cropped."
     },
     {
       "id": "portrait-monitor",
@@ -48,7 +48,7 @@
     },
     {
       "id": "fifty-three-works",
-      "hook": "53 works.\nNo repeats until\nthe collection cycles.",
+      "hook": "53 works.\nNo repeats within\neach orientation cycle.",
       "proof": "Thirty paintings are included for offline use.",
       "assets": [
         [

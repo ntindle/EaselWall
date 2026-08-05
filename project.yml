@@ -108,3 +108,29 @@ targets:
           CODE_SIGN_STYLE: Automatic
           DEVELOPMENT_TEAM: ZT2H4NNXSQ
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: APPSTORE
+
+  EaselWallTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: tests/EaselWallTests
+      - path: Sources/EaselWall/API/MuseumAPIClient.swift
+      - path: Sources/EaselWall/API/MuseumURLRequest.swift
+      - path: Sources/EaselWall/Models/AppSettings.swift
+      - path: Sources/EaselWall/Models/Painting.swift
+      - path: Sources/EaselWall/Services/PaintingStore.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ntindle.EaselWallTests
+        GENERATE_INFOPLIST_FILE: true
+        BUNDLE_LOADER: ""
+
+schemes:
+  EaselWallTests:
+    build:
+      targets:
+        EaselWallTests: [test]
+    test:
+      config: Debug
+      targets:
+        - EaselWallTests
