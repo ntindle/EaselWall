@@ -2,9 +2,13 @@
 
 A native macOS menu bar app that sets your desktop wallpaper to a different impressionist painting each day, displayed on museum-style mats.
 
-**[easelwall.com](https://easelwall.com)** · Free via Homebrew & direct download · $3 on the Mac App Store
+**[easelwall.com](https://easelwall.com)** · [$2.99 once on the Mac App Store](https://easelwall.com/app-store) · Free source-available builds
 
 ## Install
+
+**Mac App Store:**
+
+[Get EaselWall for $2.99](https://easelwall.com/app-store) — one-time purchase with automatic updates.
 
 **Homebrew:**
 ```
@@ -22,7 +26,7 @@ brew install ntindle/easelwall/easelwall
 - **Set & forget** — Lives in your menu bar. Launch at login via SMAppService. launchd agent wakes the app even after reboot or sleep.
 - **Control Center widget** — macOS Tahoe (26+) gets a native "Next Painting" button in Control Center.
 - **53 paintings** from Van Gogh, Monet, Renoir, Cezanne, Degas, Cassatt, and Seurat. 30 bundled for offline use, more fetched at runtime.
-- **Expand the collection** — Add Dutch masters via optional Rijksmuseum API key in Settings.
+- **Expand the collection** — Add more van Gogh works with an optional Rijksmuseum API key in Settings.
 - **Localized** — English, Spanish, French, German, Japanese, Chinese (Simplified), Portuguese (Brazil), Dutch.
 
 ## Screenshots

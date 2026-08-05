@@ -19,12 +19,12 @@ jobs:
 
       - name: Extract version + monotonic build number
         run: |
-          echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
-          # Monotonic build number from epoch seconds since Jan 2026.
+          echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+          # Monotonic build number from epoch seconds since Jan 2025.
           # Matches the appstore.yml derivation so Sparkle and App Store
           # see consistent CFBundleVersion progression across releases.
           BUILD_NUM=$(( ($(date +%s) - 1735689600) / 60 ))
-          echo "BUILD_NUM=$BUILD_NUM" >> $GITHUB_ENV
+          echo "BUILD_NUM=$BUILD_NUM" >> "$GITHUB_ENV"
           echo "Version: ${GITHUB_REF_NAME#v}, build $BUILD_NUM"
 
       - name: Install XcodeGen
@@ -38,12 +38,15 @@ jobs:
           P12_BASE64: ${{ secrets.DEVELOPER_ID_P12_BASE64 }}
           P12_PASSWORD: ${{ secrets.DEVELOPER_ID_P12_PASSWORD }}
         run: |
+          umask 077
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          CERT_PATH="$RUNNER_TEMP/cert.p12"
           security create-keychain -p "" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           security unlock-keychain -p "" "$KEYCHAIN_PATH"
-          echo "$P12_BASE64" | base64 --decode > $RUNNER_TEMP/cert.p12
-          security import $RUNNER_TEMP/cert.p12 \
+          printf '%s' "$P12_BASE64" | base64 --decode > "$CERT_PATH"
+          chmod 600 "$CERT_PATH"
+          security import "$CERT_PATH" \
             -k "$KEYCHAIN_PATH" \
             -P "$P12_PASSWORD" \
             -T /usr/bin/codesign
@@ -53,12 +56,12 @@ jobs:
       - name: Build Release
         run: |
           xcodebuild -project EaselWall.xcodeproj \
-            -scheme $SCHEME \
+            -scheme "$SCHEME" \
             -configuration Release \
             -destination 'platform=macOS' \
             -derivedDataPath build/DerivedData \
-            MARKETING_VERSION=$VERSION \
-            CURRENT_PROJECT_VERSION=$BUILD_NUM \
+            MARKETING_VERSION="$VERSION" \
+            CURRENT_PROJECT_VERSION="$BUILD_NUM" \
             CODE_SIGN_IDENTITY="Developer ID Application" \
             OTHER_CODE_SIGN_FLAGS="--keychain $RUNNER_TEMP/app-signing.keychain-db" \
             build
@@ -132,22 +135,41 @@ jobs:
         env:
           SPARKLE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
         run: |
-          SPARKLE_BIN=$(find ~/Library/Developer/Xcode/DerivedData -name "sign_update" -path "*/Sparkle/bin/*" | head -1)
-          if [ -z "$SPARKLE_BIN" ]; then
+          if [ -z "$SPARKLE_KEY" ]; then
+            echo "SPARKLE_ED_PRIVATE_KEY is not configured" >&2
+            exit 1
+          fi
+
+          SPARKLE_BIN="build/DerivedData/SourcePackages/artifacts/sparkle/Sparkle/bin/sign_update"
+          if [ ! -x "$SPARKLE_BIN" ]; then
             echo "sign_update not found, resolving packages first..."
             xcodebuild -resolvePackageDependencies -project EaselWall.xcodeproj 2>/dev/null
-            SPARKLE_BIN=$(find ~/Library/Developer/Xcode/DerivedData -name "sign_update" -path "*/Sparkle/bin/*" | head -1)
+            SPARKLE_BIN=$(find ~/Library/Developer/Xcode/DerivedData \
+              -type f -name "sign_update" -path "*/Sparkle/bin/*" -print -quit)
           fi
-          ED_SIGNATURE=$("$SPARKLE_BIN" --ed-key-file <(echo "$SPARKLE_KEY") "build/$APP_NAME-$VERSION.dmg" | grep "sparkle:edSignature" | sed 's/.*"\(.*\)".*/\1/')
-          echo "ED_SIGNATURE=$ED_SIGNATURE" >> $GITHUB_ENV
-          echo "Sparkle EdDSA signature: $ED_SIGNATURE"
+          if [ ! -x "$SPARKLE_BIN" ]; then
+            echo "Unable to locate Sparkle's sign_update tool" >&2
+            exit 1
+          fi
+
+          # -p emits only the base64 EdDSA signature. Parsing the default
+          # enclosure attributes with a greedy expression can capture the
+          # trailing sparkle:length value instead.
+          ED_SIGNATURE=$(printf '%s\n' "$SPARKLE_KEY" | \
+            "$SPARKLE_BIN" --ed-key-file - -p "build/$APP_NAME-$VERSION.dmg")
+          if ! [[ "$ED_SIGNATURE" =~ ^[A-Za-z0-9+/]{86}==$ ]]; then
+            echo "sign_update returned an invalid EdDSA signature" >&2
+            exit 1
+          fi
+          echo "ED_SIGNATURE=$ED_SIGNATURE" >> "$GITHUB_ENV"
+          echo "Generated Sparkle EdDSA signature"
 
       - name: Compute SHA256
         run: |
           SHA256=$(shasum -a 256 "build/$APP_NAME-$VERSION.dmg" | awk '{print $1}')
           DMG_SIZE=$(stat -f%z "build/$APP_NAME-$VERSION.dmg")
-          echo "SHA256=$SHA256" >> $GITHUB_ENV
-          echo "DMG_SIZE=$DMG_SIZE" >> $GITHUB_ENV
+          echo "SHA256=$SHA256" >> "$GITHUB_ENV"
+          echo "DMG_SIZE=$DMG_SIZE" >> "$GITHUB_ENV"
           echo "SHA256: $SHA256, Size: $DMG_SIZE"
 
       - name: Create GitHub Release
@@ -181,10 +203,26 @@ jobs:
           git commit -m "Update EaselWall to $VERSION"
           git push
 
+      # Tag checkouts are detached HEADs. Use a separate checkout of main so
+      # the generated appcast can be committed and pushed as a fast-forward.
+      - name: Check out main for appcast update
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          path: appcast-repo
+
       - name: Update appcast.xml
+        working-directory: appcast-repo
         run: |
+          if [ "$(git branch --show-current)" != "main" ]; then
+            echo "Appcast checkout is not on main" >&2
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --no-rebase origin main
           PUB_DATE=$(date -u "+%a, %d %b %Y %H:%M:%S +0000")
-          BUILD_NUM=$(echo "$VERSION" | tr -dc '0-9' | head -c 4)
           cat > website/appcast.xml << APPCASTEOF
           <?xml version="1.0" encoding="utf-8"?>
           <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
@@ -210,12 +248,16 @@ jobs:
           APPCASTEOF
           # Remove leading whitespace from heredoc
           sed -i '' 's/^          //' website/appcast.xml
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
           git add website/appcast.xml
-          git commit -m "Update appcast for v$VERSION" || echo "No appcast changes"
-          git push || echo "Push failed — appcast update may need manual push"
+          if git diff --cached --quiet; then
+            echo "Appcast is already current"
+            exit 0
+          fi
+          git commit -m "Update appcast for v$VERSION"
+          git push origin main
 
       - name: Cleanup keychain
         if: always()
-        run: security delete-keychain $RUNNER_TEMP/app-signing.keychain-db 2>/dev/null || true
+        run: |
+          security delete-keychain "$RUNNER_TEMP/app-signing.keychain-db" 2>/dev/null || true
+          rm -f "$RUNNER_TEMP/cert.p12"

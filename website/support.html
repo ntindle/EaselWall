@@ -16,7 +16,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&amp;family=Instrument+Sans:ital,wght@0,400..700;1,400..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
 
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -26,9 +26,9 @@
   --paper-2:    #EADFC6;
   --ink:        #1A120B;
   --ink-soft:   #4A3A28;
-  --ink-mute:   #8A7556;
-  --brass:      #A87433;
-  --brass-dim:  #8A5C22;
+  --ink-mute:   #705D42;
+  --brass:      #8A5C22;
+  --brass-dim:  #794C19;
   --vermillion: #B5381C;
   --mat:        #F6EFDD;
   --mat-edge:   #C9B892;
@@ -36,6 +36,25 @@
 }
 
 html { scroll-behavior: smooth; }
+
+:where(a, button) { touch-action: manipulation; }
+:where(a, button):focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.skip-link {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 1000;
+  padding: 10px 14px;
+  color: var(--paper);
+  background: var(--ink);
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+.skip-link:focus-visible { transform: translateY(0); }
 
 body {
   font-family: 'Instrument Sans', -apple-system, sans-serif;
@@ -126,6 +145,7 @@ h1 {
   letter-spacing: -0.015em;
   margin-bottom: 28px;
   font-variation-settings: "SOFT" 80, "opsz" 96;
+  text-wrap: balance;
 }
 h1 .it {
   font-style: italic;
@@ -228,14 +248,20 @@ footer {
   .footer-grid { grid-template-columns: 1fr; text-align: center; }
   .footer-grid .center, .footer-grid .right { text-align: center; }
 }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { transition-duration: 0.01ms !important; }
+}
 </style>
 </head>
 <body>
 
+<a class="skip-link" href="#main-content">Skip to main content</a>
+
 <header class="topbar">
   <div class="topbar-inner">
     <a href="/" class="mark">
-      <span class="mark-glyph">E</span>
+      <span class="mark-glyph" aria-hidden="true">E</span>
       EaselWall
     </a>
     <nav class="topbar-meta">
@@ -246,7 +272,7 @@ footer {
   </div>
 </header>
 
-<main>
+<main id="main-content" tabindex="-1">
   <div class="container">
     <p class="kicker">Help &amp; Contact</p>
     <h1>Support, <span class="it">quietly offered</span>.</h1>
@@ -274,22 +300,22 @@ footer {
 
     <h3>The wallpaper didn&rsquo;t change overnight.</h3>
     <p>
-      EaselWall rotates at the time you set in <em>Settings &rsaquo; Schedule</em>. If your Mac was asleep across that moment, the launchd agent will catch up on the next wake. If it still didn&rsquo;t rotate, click the menu bar icon and choose <em>Next Painting</em>.
+      EaselWall rotates at the time you set in <em>Settings &rsaquo; Schedule</em>. If your Mac was asleep across that moment, EaselWall catches up when it wakes. If it still didn&rsquo;t rotate, click the menu bar icon and choose <em>Next Painting</em>.
     </p>
 
     <h3>Can I add my own paintings?</h3>
     <p>
-      Not in v1. The catalogue is curated from public-domain museum collections (Art Institute of Chicago, The Met, Rijksmuseum). Custom collections are on the roadmap.
+      Not in v1. The bundled catalogue is curated from the Art Institute of Chicago and The Met. You can add more van Gogh works with an optional Rijksmuseum API key; custom collections are on the roadmap.
     </p>
 
-    <h3>How do I get the Rijksmuseum collection?</h3>
+    <h3>How do I add paintings from the Rijksmuseum Collection?</h3>
     <p>
       Request a free API key from <a href="https://data.rijksmuseum.nl/">data.rijksmuseum.nl</a>, then paste it into <em>Settings &rsaquo; Gallery &rsaquo; Additional Collections</em>.
     </p>
 
     <h3>Where are the wallpaper images stored?</h3>
     <p>
-      In your app sandbox container, under <code>~/Library/Containers/com.ntindle.EaselWall</code>. Bundled paintings ship with the app; downloaded ones are cached there until rotated.
+      EaselWall keeps downloaded paintings in its Application Support folder. The Mac App Store build stores that folder inside its sandbox container; direct and Homebrew builds use <code>~/Library/Application Support/EaselWall</code>. Bundled paintings stay inside the app itself.
     </p>
 
     <h3>How do I uninstall?</h3>
@@ -299,7 +325,7 @@ footer {
 
     <h3>Does EaselWall send my data anywhere?</h3>
     <p>
-      No. See the <a href="/privacy">privacy page</a> for the full statement.
+      EaselWall sends no personal data or telemetry. It does contact museum servers to fetch public artwork, and it sends your optional Rijksmuseum API key only to Rijksmuseum. See the <a href="/privacy">privacy page</a> for the full statement.
     </p>
   </div>
 </main>

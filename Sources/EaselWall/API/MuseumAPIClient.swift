@@ -25,8 +25,7 @@ actor MuseumAPIClient {
             URLQueryItem(name: "query[term][classification_titles]", value: "painting"),
         ]
 
-        var request = URLRequest(url: components.url!)
-        request.setValue("EaselWall (nick@ntindle.com)", forHTTPHeaderField: "AIC-User-Agent")
+        let request = MuseumURLRequest.make(for: components.url!)
         let (data, _) = try await session.data(for: request)
         let response = try JSONDecoder().decode(AICSearchResponse.self, from: data)
 
