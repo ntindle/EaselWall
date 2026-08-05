@@ -68,6 +68,21 @@ jobs:
           } >> "$GITHUB_ENV"
           echo "Version: $VERSION, build $BUILD_NUM"
 
+      - name: Bind the build to its remote release tag
+        run: |
+          TAG="v$VERSION"
+          git fetch --prune --no-tags origin \
+            '+refs/tags/*:refs/remotes/origin-tags/*'
+          REMOTE_TAG_REF="refs/remotes/origin-tags/$TAG"
+          if ! REMOTE_TAG_COMMIT=$(git rev-parse --verify "$REMOTE_TAG_REF^{commit}"); then
+            echo "::error::Release tag $TAG does not exist on origin"
+            exit 1
+          fi
+          if [[ "$REMOTE_TAG_COMMIT" != "$(git rev-parse HEAD)" ]]; then
+            echo "::error::Origin tag $TAG does not resolve to the checked-out commit"
+            exit 1
+          fi
+
       - name: Install XcodeGen
         run: brew install xcodegen
 
@@ -218,40 +233,30 @@ jobs:
       # GitHub release, Homebrew cask, or appcast entry afterward.
       - name: Verify tag is latest release before publishing
         run: |
-          git fetch --prune --prune-tags --tags origin
+          git fetch --prune --no-tags origin \
+            '+refs/tags/*:refs/remotes/origin-tags/*'
           TAG="v$VERSION"
-          DIRECT_REF="refs/tags/$TAG"
-          PEELED_REF="${DIRECT_REF}^{}"
-          if ! REMOTE_TAG_REFS=$(git ls-remote --exit-code origin "$DIRECT_REF" "$PEELED_REF"); then
+          REMOTE_TAG_REF="refs/remotes/origin-tags/$TAG"
+          if ! REMOTE_TAG_COMMIT=$(git rev-parse --verify "$REMOTE_TAG_REF^{commit}"); then
             echo "::error::Release tag $TAG no longer exists on origin"
             exit 1
           fi
-          DIRECT_COUNT=$(printf '%s\n' "$REMOTE_TAG_REFS" | awk -v ref="$DIRECT_REF" '$2 == ref { count++ } END { print count + 0 }')
-          PEELED_COUNT=$(printf '%s\n' "$REMOTE_TAG_REFS" | awk -v ref="$PEELED_REF" '$2 == ref { count++ } END { print count + 0 }')
-          if (( DIRECT_COUNT != 1 || PEELED_COUNT > 1 )); then
-            echo "::error::Remote tag $TAG did not resolve uniquely"
-            exit 1
-          fi
-          if (( PEELED_COUNT == 1 )); then
-            REMOTE_TAG_COMMIT=$(printf '%s\n' "$REMOTE_TAG_REFS" | awk -v ref="$PEELED_REF" '$2 == ref { print $1 }')
-          else
-            REMOTE_TAG_COMMIT=$(printf '%s\n' "$REMOTE_TAG_REFS" | awk -v ref="$DIRECT_REF" '$2 == ref { print $1 }')
-          fi
           CHECKED_OUT_COMMIT=$(git rev-parse HEAD)
-          LOCAL_TAG_COMMIT=$(git rev-parse "$DIRECT_REF^{commit}")
-          if [[ "$REMOTE_TAG_COMMIT" != "$CHECKED_OUT_COMMIT" || "$LOCAL_TAG_COMMIT" != "$CHECKED_OUT_COMMIT" ]]; then
+          if [[ "$REMOTE_TAG_COMMIT" != "$CHECKED_OUT_COMMIT" ]]; then
             echo "::error::Origin tag $TAG does not resolve to the checked-out commit"
             exit 1
           fi
 
           LATEST_TAG=""
           SEMVER_TAG_RE='^v(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})$'
-          while IFS= read -r CANDIDATE; do
+          while IFS= read -r REMOTE_REF; do
+            CANDIDATE="${REMOTE_REF#refs/remotes/origin-tags/}"
             if [[ "$CANDIDATE" =~ $SEMVER_TAG_RE ]]; then
               LATEST_TAG="$CANDIDATE"
               break
             fi
-          done < <(git tag --list 'v*' --sort=-version:refname)
+          done < <(git for-each-ref --sort=-version:refname \
+            --format='%(refname)' refs/remotes/origin-tags/)
 
           if [[ -z "$LATEST_TAG" ]]; then
             echo "::error::No semantic release tag exists"
