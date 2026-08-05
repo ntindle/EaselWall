@@ -1,4 +1,4 @@
-.PHONY: build release dmg sign notarize sha256 clean generate-project generate-appstore-project archive export-appstore upload-appstore screenshots screenshots-clean
+.PHONY: build release dmg sign notarize sha256 clean generate-project generate-appstore-project archive export-appstore upload-appstore screenshots screenshots-clean appstore-marketing-screenshots app-store-report-status app-store-report-bootstrap app-store-report-snapshot app-store-report-fetch app-store-report marketing-videos marketing-video
 
 APP_NAME = EaselWall
 BUNDLE_ID = com.ntindle.EaselWall
@@ -121,6 +121,38 @@ screenshots:
 
 screenshots-clean:
 	@./scripts/screenshot.sh clean
+
+# Render the five deterministic, privacy-safe 1280x800 upload assets.
+appstore-marketing-screenshots:
+	@python3 scripts/render_app_store_screenshots.py
+
+# --- App Store proceeds reporting ---
+# Credentials are inherited from the caller's environment. `report` itself is
+# offline and can visualize previously fetched data without credentials.
+app-store-report-status:
+	@python3 scripts/app_store_reports.py status
+
+app-store-report-bootstrap:
+	@python3 scripts/app_store_reports.py bootstrap
+
+app-store-report-snapshot:
+	@python3 scripts/app_store_reports.py fetch --access-type ONE_TIME_SNAPSHOT
+
+app-store-report-fetch:
+	@python3 scripts/app_store_reports.py fetch --access-type ONGOING
+
+app-store-report:
+	@python3 scripts/app_store_reports.py report
+
+# --- Organic marketing assets ---
+# Render the complete silent 9:16 master batch. Add licensed platform audio
+# and approve each post in TikTok before publishing.
+marketing-videos:
+	@python3 scripts/render_social_videos.py --all
+
+# Render one concept: make marketing-video VIDEO=museum-morning
+marketing-video:
+	@python3 scripts/render_social_videos.py --id "$(VIDEO)"
 
 # Direct CLI upload using App Store Connect API key.
 # Requires env: APP_STORE_CONNECT_API_KEY_ID, APP_STORE_CONNECT_API_ISSUER_ID,

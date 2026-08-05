@@ -95,7 +95,6 @@ final class WallpaperManager: ObservableObject {
         let matCGColor = settings.matNSColor.cgColor
         let spacing = settings.matSpacing
         let matEnabled = settings.matEnabled
-        let paintingID = painting.id
         let paintingTitle = painting.title
         let remoteURL = painting.remoteImageURL
 
@@ -114,7 +113,8 @@ final class WallpaperManager: ObservableObject {
                     return
                 }
                 do {
-                    let (data, response) = try await URLSession.shared.data(from: url)
+                    let request = MuseumURLRequest.make(for: url)
+                    let (data, response) = try await URLSession.shared.data(for: request)
                     if let httpResp = response as? HTTPURLResponse, httpResp.statusCode != 200 {
                         NSLog("[EaselWall] HTTP \(httpResp.statusCode) for '\(paintingTitle)'")
                         isWorking = false

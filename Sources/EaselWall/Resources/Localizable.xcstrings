@@ -67,6 +67,17 @@
         "nl" : { "stringUnit" : { "state" : "translated", "value" : "Over" } }
       }
     },
+    "Rate EaselWall" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Valorar EaselWall" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Noter EaselWall" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "EaselWall bewerten" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "EaselWallを評価" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "为 EaselWall 评分" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Avaliar o EaselWall" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "EaselWall beoordelen" } }
+      }
+    },
     "Museum Mat" : {
       "localizations" : {
         "es" : { "stringUnit" : { "state" : "translated", "value" : "Paspartú" } },

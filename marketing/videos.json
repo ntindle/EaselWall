@@ -1,0 +1,107 @@
+{
+  "version": 1,
+  "defaultCta": "EaselWall for Mac · $2.99 once",
+  "videos": [
+    {
+      "id": "museum-morning",
+      "hook": "Your Mac,\nbut it wakes up\nin a museum.",
+      "proof": "A different masterpiece every morning.",
+      "assets": [
+        ["website/assets/screen-landscape-1.png"],
+        ["website/assets/screen-landscape-2.png"]
+      ],
+      "caption": "A quiet little museum that lives in your Mac menu bar. One new painting each morning, composed instead of cropped."
+    },
+    {
+      "id": "portrait-monitor",
+      "hook": "Portrait monitor owners:\nI fixed the wallpaper problem.",
+      "proof": "EaselWall matches paintings to each display's orientation.",
+      "assets": [
+        ["website/assets/screen-landscape-1.png"],
+        ["website/assets/screen-portrait.png"]
+      ],
+      "caption": "Portrait art for portrait displays. Landscape art for landscape displays. It should have worked this way all along."
+    },
+    {
+      "id": "three-displays",
+      "hook": "Three displays.\nThree masterpieces.",
+      "proof": "Choose a unique painting for every connected display.",
+      "assets": [
+        ["website/assets/screen-landscape-2.png"],
+        [
+          "website/assets/screen-landscape-1.png",
+          "website/assets/screen-portrait.png",
+          "website/assets/screen-landscape-2.png"
+        ]
+      ],
+      "caption": "One Mac setup, three different paintings—each fitted to its own display."
+    },
+    {
+      "id": "no-feed-just-art",
+      "hook": "No account.\nNo feed.\nNo notifications.\nJust art.",
+      "proof": "No ads, subscriptions, or tracking in the app.",
+      "assets": [
+        ["website/assets/screen-portrait.png"],
+        ["website/assets/screen-landscape-1.png"]
+      ],
+      "caption": "An app you install once and then mostly forget—until tomorrow's painting appears."
+    },
+    {
+      "id": "fifty-three-works",
+      "hook": "53 works.\nNo repeats until\nthe collection cycles.",
+      "proof": "Thirty paintings are included for offline use.",
+      "assets": [
+        [
+          "Resources/Paintings/images/aic_28560.jpg",
+          "Resources/Paintings/images/aic_16568.jpg",
+          "Resources/Paintings/images/aic_14620.jpg",
+          "Resources/Paintings/images/aic_80607.jpg",
+          "Resources/Paintings/images/aic_111436.jpg",
+          "Resources/Paintings/images/aic_14598.jpg"
+        ],
+        ["website/assets/screen-landscape-2.png"]
+      ],
+      "caption": "Van Gogh, Monet, Cassatt, Degas, Renoir, Cezanne and Seurat—curated for a calmer desktop."
+    },
+    {
+      "id": "monet-week",
+      "hook": "What if your Mac\nhad a Monet week?",
+      "proof": "Tomorrow chooses another work from the collection.",
+      "assets": [
+        [
+          "Resources/Paintings/images/aic_16568.jpg",
+          "Resources/Paintings/images/aic_14620.jpg",
+          "Resources/Paintings/images/aic_87088.jpg",
+          "Resources/Paintings/images/aic_16571.jpg"
+        ],
+        ["website/assets/screen-landscape-1.png"]
+      ],
+      "caption": "Water lilies today. Pourville tomorrow. A tiny changing exhibition for your desktop."
+    },
+    {
+      "id": "van-gogh-without-starry-night",
+      "hook": "Van Gogh,\nwithout The Starry Night.",
+      "proof": "A quieter way to rediscover familiar artists.",
+      "assets": [
+        [
+          "Resources/Paintings/images/aic_28560.jpg",
+          "Resources/Paintings/images/aic_52733.jpg",
+          "Resources/Paintings/images/aic_109314.jpg",
+          "Resources/Paintings/images/aic_80607.jpg"
+        ],
+        ["website/assets/screen-landscape-2.png"]
+      ],
+      "caption": "The Bedroom, Weeping Tree, Fishing in Spring and a self-portrait—there is more to Van Gogh than one night sky."
+    },
+    {
+      "id": "tiny-museum",
+      "hook": "A tiny museum\nin your menu bar.",
+      "proof": "One-time $2.99 purchase. No subscription.",
+      "assets": [
+        ["website/assets/screen-landscape-1.png"],
+        ["website/assets/screen-portrait.png"]
+      ],
+      "caption": "EaselWall turns a different public-domain masterpiece into a properly composed Mac wallpaper every day."
+    }
+  ]
+}

@@ -347,6 +347,13 @@ private struct AboutPane: View {
                 Text("\(paintingStore.catalog.count) paintings in collection")
                     .foregroundStyle(.secondary)
 
+                #if APPSTORE
+                Link(destination: Self.writeReviewURL) {
+                    Label("Rate EaselWall", systemImage: "star.bubble")
+                }
+                .buttonStyle(.bordered)
+                #endif
+
                 Divider()
                     .frame(width: 240)
 
@@ -380,4 +387,10 @@ private struct AboutPane: View {
             .frame(maxWidth: .infinity)
         }
     }
+
+    #if APPSTORE
+    private static let writeReviewURL = URL(
+        string: "https://apps.apple.com/app/id6778701883?action=write-review"
+    )!
+    #endif
 }

@@ -185,7 +185,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 guard let urlString = painting.remoteImageURL,
                       let url = URL(string: urlString) else { continue }
                 do {
-                    let (data, response) = try await URLSession.shared.data(from: url)
+                    let request = MuseumURLRequest.make(for: url)
+                    let (data, response) = try await URLSession.shared.data(for: request)
                     if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200,
                        let contentType = httpResponse.value(forHTTPHeaderField: "Content-Type"),
                        contentType.contains("image") {

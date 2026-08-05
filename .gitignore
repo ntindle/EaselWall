@@ -26,6 +26,12 @@ Packages/
 # App Store screenshot captures (regenerable)
 screenshots/
 
+# Rendered social videos (regenerable from marketing/videos.json)
+marketing/renders/
+
+# Private App Store Connect analytics downloads
+marketing/reports/
+
 # Python (icon generation)
 __pycache__/
 *.pyc
@@ -49,4 +55,3 @@ AuthKey_*.p8
 # Claude Code local config
 .claude/settings.local.json
 .mcp.json
-

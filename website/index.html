@@ -3,8 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EaselWall — A daily exhibition for your desktop.</title>
+<title>EaselWall — Daily Impressionist Wallpapers for Mac</title>
 <meta name="description" content="EaselWall is a macOS menu-bar app that mats a different public-domain masterpiece onto your desktop each morning.">
+<meta name="apple-itunes-app" content="app-id=6778701883, affiliate-data=pt=122660259&amp;ct=web_site&amp;mt=8">
+<meta name="theme-color" content="#F1E9D7">
 
 <!-- Favicon -->
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
@@ -12,24 +14,24 @@
 <link rel="icon" href="assets/favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
-<meta name="theme-color" content="#F1E9D7">
-
 <!-- Open Graph (Facebook, LinkedIn, iMessage, Slack, Discord) -->
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://easelwall.com/">
-<meta property="og:title" content="EaselWall — A daily exhibition for your desktop.">
+<meta property="og:title" content="EaselWall — Daily Impressionist Wallpapers for Mac">
 <meta property="og:description" content="A macOS menu-bar app that mats a different public-domain masterpiece onto your wallpaper each morning. Museum-style framing, orientation-aware, set and forget.">
 <meta property="og:image" content="https://easelwall.com/assets/og-image.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Wheat Field with Cypresses by Vincent van Gogh">
 <meta property="og:site_name" content="EaselWall">
 <meta property="og:locale" content="en_US">
 
 <!-- Twitter Card -->
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="EaselWall — A daily exhibition for your desktop.">
+<meta name="twitter:title" content="EaselWall — Daily Impressionist Wallpapers for Mac">
 <meta name="twitter:description" content="A macOS menu-bar app that mats a different public-domain masterpiece onto your wallpaper each morning.">
 <meta name="twitter:image" content="https://easelwall.com/assets/og-image.jpg">
+<meta name="twitter:image:alt" content="Wheat Field with Cypresses by Vincent van Gogh">
 <meta name="twitter:creator" content="@ntindle">
 
 <!-- SEO -->
@@ -45,21 +47,15 @@
   "name": "EaselWall",
   "description": "A macOS menu-bar app that mats a different public-domain masterpiece onto your desktop each morning.",
   "url": "https://easelwall.com",
-  "applicationCategory": "UtilitiesApplication",
+  "applicationCategory": "LifestyleApplication",
   "operatingSystem": "macOS 14+",
   "offers": [
     {
       "@type": "Offer",
-      "price": "0",
-      "priceCurrency": "USD",
-      "description": "Free via Homebrew and direct download"
-    },
-    {
-      "@type": "Offer",
-      "price": "3.00",
+      "price": "2.99",
       "priceCurrency": "USD",
       "description": "Mac App Store",
-      "url": "https://apps.apple.com/app/easelwall"
+      "url": "https://easelwall.com/app-store"
     }
   ],
   "author": {
@@ -68,14 +64,14 @@
     "url": "https://github.com/ntindle"
   },
   "screenshot": "https://easelwall.com/assets/og-image.jpg",
-  "softwareVersion": "0.1.0",
-  "downloadUrl": "https://github.com/ntindle/EaselWall/releases/latest"
+  "softwareVersion": "1.0.0",
+  "downloadUrl": "https://easelwall.com/app-store"
 }
 </script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&amp;family=Instrument+Sans:ital,wght@0,400..700;1,400..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
 
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -85,9 +81,9 @@
   --paper-2:    #EADFC6;
   --ink:        #1A120B;
   --ink-soft:   #4A3A28;
-  --ink-mute:   #8A7556;
-  --brass:      #A87433;
-  --brass-dim:  #8A5C22;
+  --ink-mute:   #705D42;
+  --brass:      #8A5C22;
+  --brass-dim:  #794C19;
   --vermillion: #B5381C;
   --forest:     #3F5240;
   --mat:        #F6EFDD;
@@ -96,6 +92,28 @@
 }
 
 html { scroll-behavior: smooth; }
+
+:where(section[id], h1[id], h2[id], h3[id]) { scroll-margin-top: 24px; }
+
+:where(a, button) { touch-action: manipulation; }
+:where(a, button):focus-visible {
+  outline: 3px solid var(--paper);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px var(--vermillion);
+}
+
+.skip-link {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 1000;
+  padding: 10px 14px;
+  color: var(--paper);
+  background: var(--ink);
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+.skip-link:focus-visible { transform: translateY(0); }
 
 body {
   font-family: 'Instrument Sans', -apple-system, sans-serif;
@@ -237,6 +255,7 @@ h1.hero-title {
   letter-spacing: -0.025em;
   color: var(--ink);
   margin-bottom: 28px;
+  text-wrap: balance;
 }
 h1.hero-title .it {
   font-style: italic;
@@ -290,6 +309,18 @@ h1.hero-title .amp {
 }
 .btn-primary:hover { background: #2A1D12; transform: translateY(-1px); box-shadow: 0 2px 0 rgba(26,18,11,0.5), 0 10px 22px rgba(26,18,11,0.22); }
 .btn-primary svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.btn-secondary {
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--ink-soft);
+}
+.btn-secondary:hover { border-color: var(--brass); color: var(--brass-dim); transform: translateY(-1px); }
+.btn-price {
+  padding-left: 9px;
+  border-left: 1px solid rgba(241,233,215,0.35);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+}
 
 .brew {
   font-family: 'JetBrains Mono', monospace;
@@ -495,6 +526,7 @@ h1.hero-title .amp {
   letter-spacing: -0.015em;
   line-height: 1.15;
   color: var(--ink);
+  text-wrap: balance;
 }
 .section-head h2 em {
   font-style: italic;
@@ -753,20 +785,29 @@ h1.hero-title .amp {
   justify-content: center;
 }
 .easel-dots button {
-  width: 8px; height: 8px;
+  width: 28px; height: 28px;
   padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.easel-dots button::before {
+  content: "";
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   border: 1px solid var(--ink-soft);
   background: transparent;
-  cursor: pointer;
   transition: background .25s, border-color .25s, transform .25s;
 }
-.easel-dots button.active {
+.easel-dots button.active::before {
   background: var(--brass);
   border-color: var(--brass);
   transform: scale(1.15);
 }
-.easel-dots button:hover { border-color: var(--brass); }
+.easel-dots button:hover::before { border-color: var(--brass); }
 
 .easel-wrap .hang-hook {
   position: absolute;
@@ -961,6 +1002,41 @@ h1.hero-title .amp {
 
 .credit-center { text-align: center; }
 
+/* ── Closing purchase invitation ── */
+.store-close {
+  padding: 72px 0;
+  background: var(--ink);
+  color: var(--paper);
+  text-align: center;
+}
+.store-close h2 {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "SOFT" 80, "opsz" 72, "wght" 420;
+  font-size: clamp(2.2rem, 5vw, 4.2rem);
+  line-height: 1.05;
+  margin-bottom: 18px;
+  text-wrap: balance;
+}
+.store-close h2 em { color: #D7B77F; font-weight: 380; }
+.store-close p {
+  max-width: 58ch;
+  margin: 0 auto 28px;
+  color: var(--paper-2);
+}
+.store-close .btn-primary {
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: none;
+}
+.store-close .btn-primary:hover { background: #fffaf0; }
+.store-close .btn-price { border-color: rgba(26,18,11,0.25); }
+.store-close .store-alternate {
+  margin: 18px auto 0;
+  font-size: 0.78rem;
+  color: var(--rule);
+}
+.store-close .store-alternate a { color: var(--paper-2); }
+
 /* ── Footer ── */
 footer {
   padding: 40px 0 48px;
@@ -1024,26 +1100,41 @@ footer {
   .hero-cta { flex-direction: column; align-items: stretch; }
   .btn, .brew { width: 100%; justify-content: center; }
 }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .marquee-track { animation: none; }
+  .btn:hover { transform: none; }
+}
 </style>
 </head>
 <body>
 
+<a class="skip-link" href="#main-content">Skip to main content</a>
+
 <!-- Top bar -->
 <header class="topbar">
   <div class="container topbar-inner">
-    <a href="#" class="mark">
-      <span class="mark-glyph">E</span>
+    <a href="/" class="mark">
+      <span class="mark-glyph" aria-hidden="true">E</span>
       EaselWall
     </a>
-    <nav class="topbar-meta">
-      <span>Vol. I &middot; Spring 2026</span>
+    <nav class="topbar-meta" aria-label="Primary navigation">
+      <span>Available now &middot; macOS 14+</span>
       <a href="#features">Features</a>
       <a href="#gallery">Gallery</a>
       <a href="#provenance">Provenance</a>
+      <a href="/app-store">App Store &#8599;</a>
       <a href="https://github.com/ntindle/EaselWall">GitHub &#8599;</a>
     </nav>
   </div>
 </header>
+
+<main id="main-content" tabindex="-1">
 
 <!-- Hero -->
 <section class="hero">
@@ -1066,14 +1157,14 @@ footer {
         </p>
 
         <div class="hero-cta">
-          <a href="https://github.com/ntindle/EaselWall/releases/latest" class="btn btn-primary">
-            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Download for macOS
+          <a href="/app-store" class="btn btn-primary">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Get on the Mac App Store
+            <span class="btn-price">$2.99</span>
           </a>
-          <code class="brew">brew install ntindle/easelwall/easelwall</code>
         </div>
 
-        <p class="hero-footnote"><sup>&dagger;</sup> Free via Homebrew &amp; direct download. $3 on the <a href="https://apps.apple.com/app/easelwall" style="color:var(--brass);border-bottom:1px solid var(--brass)">Mac App Store</a>. Requires macOS 14 Sonoma or later.</p>
+        <p class="hero-footnote"><sup>&dagger;</sup> One-time purchase &middot; automatic App Store updates &middot; no account, subscription, ads, or tracking. The source-available build remains free via <a href="https://github.com/ntindle/EaselWall/releases/latest" style="color:var(--brass);border-bottom:1px solid var(--brass)">GitHub</a> and Homebrew.</p>
       </div>
 
       <div class="frame-stage">
@@ -1081,7 +1172,7 @@ footer {
           <span class="nail tl"></span><span class="nail tr"></span>
           <span class="nail bl"></span><span class="nail br"></span>
           <div class="canvas-window">
-            <img src="assets/bedroom.jpg" alt="The Bedroom by Vincent van Gogh">
+            <img src="assets/bedroom.jpg" alt="The Bedroom by Vincent van Gogh" width="800" height="626" decoding="async" fetchpriority="high">
           </div>
           <div class="wall-label">
             <div class="title">
@@ -1104,11 +1195,11 @@ footer {
 <div class="marquee" aria-hidden="true">
   <div class="marquee-track">
     <span>
-      <em>Impression, Sunrise</em><span class="yr">CLAUDE MONET &middot; 1872</span>
+      <em>Arrival of the Normandy Train</em><span class="yr">CLAUDE MONET &middot; 1877</span>
       <span class="dot"></span>
       <em>A Sunday on La Grande Jatte</em><span class="yr">GEORGES SEURAT &middot; 1884</span>
       <span class="dot"></span>
-      <em>The Starry Night</em><span class="yr">VAN GOGH &middot; 1889</span>
+      <em>Irises</em><span class="yr">VAN GOGH &middot; 1890</span>
       <span class="dot"></span>
       <em>Water Lilies</em><span class="yr">MONET &middot; 1906</span>
       <span class="dot"></span>
@@ -1118,11 +1209,11 @@ footer {
       <span class="dot"></span>
     </span>
     <span>
-      <em>Impression, Sunrise</em><span class="yr">CLAUDE MONET &middot; 1872</span>
+      <em>Arrival of the Normandy Train</em><span class="yr">CLAUDE MONET &middot; 1877</span>
       <span class="dot"></span>
       <em>A Sunday on La Grande Jatte</em><span class="yr">GEORGES SEURAT &middot; 1884</span>
       <span class="dot"></span>
-      <em>The Starry Night</em><span class="yr">VAN GOGH &middot; 1889</span>
+      <em>Irises</em><span class="yr">VAN GOGH &middot; 1890</span>
       <span class="dot"></span>
       <em>Water Lilies</em><span class="yr">MONET &middot; 1906</span>
       <span class="dot"></span>
@@ -1147,7 +1238,7 @@ footer {
       <div class="feature">
         <div class="feature-badge">i</div>
         <h3>Museum <em>mats</em></h3>
-        <p>Each painting is presented on a soft cream mat with a subtle border and a proper wall label &mdash; no stretched pixels, no awkward cropping, no screen clutter.</p>
+        <p>Each painting is presented on a soft cream mat with a subtle border and shadow &mdash; no stretched pixels, no awkward cropping, no screen clutter.</p>
       </div>
       <div class="feature">
         <div class="feature-badge">ii</div>
@@ -1157,7 +1248,7 @@ footer {
       <div class="feature">
         <div class="feature-badge">iii</div>
         <h3>Set &amp; <em>forget</em></h3>
-        <p>Installs once, lives in your menu bar, refreshes at dawn. No accounts, no notifications, no tracking. A single checkbox if you'd rather pick the hour.</p>
+        <p>Installs once, lives in your menu bar, and refreshes on schedule. No accounts, no notifications, no tracking. Pick another hour in Settings whenever you like.</p>
       </div>
     </div>
 
@@ -1168,7 +1259,7 @@ footer {
           <div class="monitor-body">
             <div class="monitor-screen">
               <div class="monitor-mat">
-                <img src="assets/screen-landscape-1-web.jpg" alt="Landscape monitor with painting on mat">
+                <img src="assets/screen-landscape-1-web.jpg" alt="Landscape monitor with painting on mat" width="1200" height="775" loading="lazy" decoding="async">
               </div>
             </div>
             <div class="monitor-chin"></div>
@@ -1180,7 +1271,7 @@ footer {
           <div class="monitor-body">
             <div class="monitor-screen">
               <div class="monitor-mat">
-                <img src="assets/screen-portrait-web.jpg" alt="Portrait monitor with painting on mat">
+                <img src="assets/screen-portrait-web.jpg" alt="Portrait monitor with painting on mat" width="800" height="1422" loading="lazy" decoding="async">
               </div>
             </div>
             <div class="monitor-chin"></div>
@@ -1192,7 +1283,7 @@ footer {
           <div class="monitor-body">
             <div class="monitor-screen">
               <div class="monitor-mat">
-                <img src="assets/screen-landscape-2-web.jpg" alt="Landscape monitor with painting on mat">
+                <img src="assets/screen-landscape-2-web.jpg" alt="Landscape monitor with painting on mat" width="1200" height="675" loading="lazy" decoding="async">
               </div>
             </div>
             <div class="monitor-chin"></div>
@@ -1211,14 +1302,14 @@ footer {
   <div class="container">
     <div class="exhibit-head">
       <span class="kicker dual">An evolving collection</span>
-      <h2>A year of <em>mornings</em>,<br>three hundred and sixty-five <em>paintings</em>.</h2>
+      <h2>Morning after <em>morning</em>,<br>fifty-three curated <em>paintings</em>.</h2>
     </div>
 
-    <div class="easel-wrap">
+    <div class="easel-wrap" role="region" aria-roledescription="carousel" aria-label="Painting gallery">
       <span class="hang-hook"></span>
       <div class="easel-frame">
         <div class="easel-canvas" id="easelCanvas"></div>
-        <div class="easel-label">
+        <div class="easel-label" aria-live="polite" aria-atomic="true">
           <div class="info" id="easelInfo">
             <span id="easelTitle">Loading&hellip;</span>
             <span class="artist" id="easelArtist"></span>
@@ -1226,7 +1317,7 @@ footer {
           <div class="no" id="easelNo">&mdash;</div>
         </div>
       </div>
-      <div class="easel-dots" id="easelDots" role="tablist"></div>
+      <div class="easel-dots" id="easelDots" role="group" aria-label="Choose a painting"></div>
     </div>
   </div>
 </section>
@@ -1249,14 +1340,27 @@ footer {
       <div class="process-step">
         <span class="roman">ii.</span>
         <h3>Curate</h3>
-        <p>At a moment of your choosing, a painting is drawn from three open-access museum collections and matted to your display.</p>
+        <p>At a moment of your choosing, a painting is drawn from the bundled open-access collection and matted to your display. Add more van Gogh works with your own Rijksmuseum API key.</p>
       </div>
       <div class="process-step">
         <span class="roman">iii.</span>
         <h3>Enjoy</h3>
-        <p>Close the lid, open it tomorrow, find a different Monet. Or a Degas. Or a Cassatt. All properly labelled, credited, and framed.</p>
+        <p>Close the lid, open it tomorrow, find a different Monet. Or a Degas. Or a Cassatt. Each work stays properly credited, matted, and at its natural proportions.</p>
       </div>
     </div>
+  </div>
+</section>
+
+<!-- Closing App Store invitation -->
+<section class="store-close" aria-labelledby="store-close-title">
+  <div class="container-narrow">
+    <h2 id="store-close-title">Put a little <em>museum</em> on your Mac.</h2>
+    <p>Fifty-three impressionist and post-impressionist works, thirty available offline, composed for every display. Pay once and let tomorrow choose the next one.</p>
+    <a href="/app-store" class="btn btn-primary">
+      Get EaselWall on the Mac App Store
+      <span class="btn-price">$2.99</span>
+    </a>
+    <p class="store-alternate">Prefer the source-available build? <a href="https://github.com/ntindle/EaselWall/releases/latest">Download it free</a> or use Homebrew.</p>
   </div>
 </section>
 
@@ -1282,7 +1386,7 @@ footer {
         <div class="stamp">CC0</div>
         <div class="n">&numero; 01</div>
         <h3>The Art Institute<br>of Chicago</h3>
-        <p>Over 52,000 works made freely available through the museum's open-access initiative, including Caillebotte, Seurat, and Monet.</p>
+        <p>Its open-access collection includes works by Caillebotte, Seurat, and Monet, shared for anyone to explore and reuse.</p>
       </article>
       <article class="prov-card">
         <div class="stamp">CC0</div>
@@ -1292,9 +1396,9 @@ footer {
       </article>
       <article class="prov-card">
         <div class="stamp">CC0</div>
-        <div class="n">&numero; 03</div>
+        <div class="n">&numero; 03 &middot; Optional</div>
         <h3>Rijksmuseum<br>Amsterdam</h3>
-        <p>The Dutch Golden Age and beyond, offered at remarkably high resolution. Vermeer, Rembrandt, and van Gogh return here, unclipped, on your screen.</p>
+        <p>Add more van Gogh works from the Rijksmuseum Collection by providing your own free API key in Settings. The bundled catalogue works without one.</p>
       </article>
     </div>
 
@@ -1304,12 +1408,14 @@ footer {
 
     <div class="credit-center">
       <a href="https://github.com/ntindle/EaselWall" class="github-cta">
-        <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
         Read the source on GitHub
       </a>
     </div>
   </div>
 </section>
+
+</main>
 
 <!-- Footer -->
 <footer>
@@ -1324,27 +1430,35 @@ footer {
   const paintings = [
     {
       src:   'assets/bedroom.jpg',
+      width: 800,
+      height: 626,
       title: 'The Bedroom',
       artist:'Vincent van Gogh \u00b7 1889',
-      no:    'ENTRY 182 / 365'
+      no:    'ENTRY 18 / 53'
     },
     {
       src:   'assets/grande-jatte.jpg',
+      width: 800,
+      height: 536,
       title: 'A Sunday on La Grande Jatte',
       artist:'Georges Seurat \u00b7 1884',
-      no:    'ENTRY 104 / 365'
+      no:    'ENTRY 10 / 53'
     },
     {
       src:   'assets/water-lilies.jpg',
+      width: 800,
+      height: 768,
       title: 'Water Lilies',
       artist:'Claude Monet \u00b7 1906',
-      no:    'ENTRY 047 / 365'
+      no:    'ENTRY 05 / 53'
     },
     {
       src:   'assets/cliff-walk.jpg',
+      width: 800,
+      height: 640,
       title: 'Cliff Walk at Pourville',
       artist:'Claude Monet \u00b7 1882',
-      no:    'ENTRY 218 / 365'
+      no:    'ENTRY 22 / 53'
     }
   ];
 
@@ -1354,6 +1468,7 @@ footer {
   const artistEl = document.getElementById('easelArtist');
   const noEl     = document.getElementById('easelNo');
   const infoEl   = document.getElementById('easelInfo');
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   paintings.forEach((p, i) => {
     const s = document.createElement('div');
@@ -1361,21 +1476,31 @@ footer {
     const img = new Image();
     img.src = p.src;
     img.alt = p.title + ' by ' + p.artist;
+    img.width = p.width;
+    img.height = p.height;
     img.loading = i === 0 ? 'eager' : 'lazy';
+    img.decoding = 'async';
+    s.setAttribute('aria-hidden', i === 0 ? 'false' : 'true');
     s.appendChild(img);
     canvasEl.appendChild(s);
 
     const b = document.createElement('button');
+    b.type = 'button';
     b.setAttribute('aria-label', 'Show ' + p.title);
+    b.setAttribute('aria-pressed', i === 0 ? 'true' : 'false');
     if (i === 0) b.classList.add('active');
-    b.addEventListener('click', () => goTo(i, true));
+    b.addEventListener('click', () => goTo(i));
     dotsEl.appendChild(b);
   });
 
   let idx = 0;
-  let timer;
-
   function setLabel(p) {
+    if (reducedMotion) {
+      titleEl.textContent = p.title;
+      artistEl.textContent = p.artist;
+      noEl.textContent = p.no;
+      return;
+    }
     infoEl.style.opacity = 0;
     noEl.style.opacity = 0;
     setTimeout(() => {
@@ -1388,29 +1513,21 @@ footer {
   }
   setLabel(paintings[0]);
 
-  function goTo(i, userInitiated) {
+  function goTo(i) {
     if (i === idx) return;
     const slides = canvasEl.querySelectorAll('.easel-slide');
     const dots   = dotsEl.querySelectorAll('button');
     slides[idx].classList.remove('active');
+    slides[idx].setAttribute('aria-hidden', 'true');
     dots[idx].classList.remove('active');
+    dots[idx].setAttribute('aria-pressed', 'false');
     idx = i;
     slides[idx].classList.add('active');
+    slides[idx].setAttribute('aria-hidden', 'false');
     dots[idx].classList.add('active');
+    dots[idx].setAttribute('aria-pressed', 'true');
     setLabel(paintings[idx]);
-    if (userInitiated) {
-      clearInterval(timer);
-      timer = setInterval(next, 5200);
-    }
   }
-
-  function next() { goTo((idx + 1) % paintings.length); }
-
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (!reduced) timer = setInterval(next, 5200);
-
-  canvasEl.addEventListener('mouseenter', () => clearInterval(timer));
-  canvasEl.addEventListener('mouseleave', () => { if (!reduced) timer = setInterval(next, 5200); });
 </script>
 </body>
 </html>

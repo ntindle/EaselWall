@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Privacy — EaselWall</title>
-<meta name="description" content="EaselWall does not collect, transmit, or sell any user data. Settings stay on your Mac.">
+<meta name="description" content="EaselWall collects no personal data or telemetry. Settings stay on your Mac.">
 
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
@@ -16,7 +16,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,0..100;1,9..144,300..900,0..100&amp;family=Instrument+Sans:ital,wght@0,400..700;1,400..700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
 
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -26,15 +26,34 @@
   --paper-2:    #EADFC6;
   --ink:        #1A120B;
   --ink-soft:   #4A3A28;
-  --ink-mute:   #8A7556;
-  --brass:      #A87433;
-  --brass-dim:  #8A5C22;
+  --ink-mute:   #705D42;
+  --brass:      #8A5C22;
+  --brass-dim:  #794C19;
   --mat:        #F6EFDD;
   --mat-edge:   #C9B892;
   --rule:       #BFAB85;
 }
 
 html { scroll-behavior: smooth; }
+
+:where(a, button) { touch-action: manipulation; }
+:where(a, button):focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.skip-link {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 1000;
+  padding: 10px 14px;
+  color: var(--paper);
+  background: var(--ink);
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+.skip-link:focus-visible { transform: translateY(0); }
 
 body {
   font-family: 'Instrument Sans', -apple-system, sans-serif;
@@ -123,6 +142,7 @@ h1 {
   letter-spacing: -0.015em;
   margin-bottom: 28px;
   font-variation-settings: "SOFT" 80, "opsz" 96;
+  text-wrap: balance;
 }
 h1 .it {
   font-style: italic;
@@ -219,14 +239,20 @@ footer {
   .footer-grid { grid-template-columns: 1fr; text-align: center; }
   .footer-grid .center, .footer-grid .right { text-align: center; }
 }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { transition-duration: 0.01ms !important; }
+}
 </style>
 </head>
 <body>
 
+<a class="skip-link" href="#main-content">Skip to main content</a>
+
 <header class="topbar">
   <div class="topbar-inner">
     <a href="/" class="mark">
-      <span class="mark-glyph">E</span>
+      <span class="mark-glyph" aria-hidden="true">E</span>
       EaselWall
     </a>
     <nav class="topbar-meta">
@@ -237,10 +263,10 @@ footer {
   </div>
 </header>
 
-<main>
+<main id="main-content" tabindex="-1">
   <div class="container">
     <p class="kicker">Privacy Policy</p>
-    <h1>Nothing leaves <span class="it">your Mac</span>.</h1>
+    <h1>Your data stays on <span class="it">your Mac</span>.</h1>
     <p class="lede">
       The short version is the whole version. There is no analytics dashboard, no growth team, no third party watching what you set as your wallpaper.
     </p>
@@ -251,7 +277,7 @@ footer {
 
     <h2>What the app actually does</h2>
     <p>
-      EaselWall stores your preferences (rotation time, mat color, schedule, selected paintings) in the standard macOS preferences system, scoped to its own sandbox. Wallpaper image files cache to the app&rsquo;s sandbox container. Nothing is transmitted anywhere.
+      EaselWall stores your preferences (rotation time, mat color, schedule, selected paintings) in the standard macOS preferences system, scoped to its own sandbox. Wallpaper image files cache to the app&rsquo;s sandbox container. The app does not send those preferences to EaselWall or any analytics service. If you enable the optional Rijksmuseum collection, your API key is stored with the app&rsquo;s preferences and sent only to Rijksmuseum when requesting its public artwork.
     </p>
 
     <h2>Network activity</h2>
@@ -259,12 +285,12 @@ footer {
       The app fetches public-domain artwork metadata and image files directly from the museums whose collections it features:
     </p>
     <p>
-      &mdash; <a href="https://api.artic.edu/docs/">api.artic.edu</a> (Art Institute of Chicago)<br>
-      &mdash; <a href="https://metmuseum.github.io/">metmuseum.github.io</a> (The Metropolitan Museum of Art)<br>
-      &mdash; <a href="https://data.rijksmuseum.nl/">data.rijksmuseum.nl</a> (Rijksmuseum &mdash; only if you provide your own API key)
+      &mdash; <a href="https://api.artic.edu/docs/">api.artic.edu and www.artic.edu</a> (Art Institute of Chicago)<br>
+      &mdash; <a href="https://metmuseum.github.io/">collectionapi.metmuseum.org and images.metmuseum.org</a> (The Metropolitan Museum of Art)<br>
+      &mdash; <a href="https://data.rijksmuseum.nl/">www.rijksmuseum.nl and the image host returned by its API</a> (Rijksmuseum &mdash; only if you provide your own API key)
     </p>
     <p>
-      These requests are anonymous and carry only the standard HTTP user-agent. Each museum&rsquo;s own privacy policy governs what they do with their server logs.
+      These requests contain no user-specific identifier. EaselWall sends an app-level user-agent to the Art Institute of Chicago, and a Rijksmuseum request includes the API key you provided. Each museum&rsquo;s own privacy policy governs what it does with server logs.
     </p>
     <p>
       If you enable auto-update (in builds distributed via Homebrew or direct download), the app periodically checks <code>easelwall.com/appcast.xml</code> for new releases. The Mac App Store version uses Apple&rsquo;s own update mechanism instead.
@@ -290,7 +316,7 @@ footer {
       Questions? <a href="mailto:support@easelwall.com">support@easelwall.com</a> or open an issue at <a href="https://github.com/ntindle/EaselWall/issues">github.com/ntindle/EaselWall/issues</a>.
     </p>
 
-    <p class="effective">Effective 2026-06-10</p>
+    <p class="effective">Effective 2026-08-05</p>
   </div>
 </main>
 

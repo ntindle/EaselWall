@@ -21,13 +21,42 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Determine version
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
         run: |
-          if [[ -n "${{ inputs.version }}" ]]; then
-            echo "VERSION=${{ inputs.version }}" >> $GITHUB_ENV
+          if [[ -n "$REQUESTED_VERSION" ]]; then
+            VERSION="${REQUESTED_VERSION#v}"
+          elif [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
           else
-            echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+            LATEST_TAG=$(git tag --list 'v[0-9]*' --sort=-version:refname | sed -n '1p')
+            if [[ -z "$LATEST_TAG" ]]; then
+              echo "::error::No version tag found; supply the version input"
+              exit 1
+            fi
+            VERSION="${LATEST_TAG#v}"
+          fi
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Marketing version must be three dot-separated integers"
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Bind the build to its release tag
+        run: |
+          TAG="v$VERSION"
+          if ! git rev-parse --verify --quiet "refs/tags/$TAG^{commit}" >/dev/null; then
+            echo "::error::Release tag $TAG does not exist"
+            exit 1
+          fi
+          git checkout --detach "refs/tags/$TAG"
+          if [[ "$(git rev-parse HEAD)" != "$(git rev-list -n 1 "$TAG")" ]]; then
+            echo "::error::Checked-out source does not match $TAG"
+            exit 1
           fi
 
       - name: Install XcodeGen
@@ -43,12 +72,15 @@ jobs:
           P12_BASE64: ${{ secrets.APP_STORE_P12_BASE64 }}
           P12_PASSWORD: ${{ secrets.APP_STORE_P12_PASSWORD }}
         run: |
-          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          umask 077
+          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
+          CERT_PATH="$RUNNER_TEMP/cert.p12"
           security create-keychain -p "" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           security unlock-keychain -p "" "$KEYCHAIN_PATH"
-          echo "$P12_BASE64" | base64 --decode > $RUNNER_TEMP/cert.p12
-          security import $RUNNER_TEMP/cert.p12 \
+          printf '%s' "$P12_BASE64" | base64 --decode > "$CERT_PATH"
+          chmod 600 "$CERT_PATH"
+          security import "$CERT_PATH" \
             -k "$KEYCHAIN_PATH" \
             -P "$P12_PASSWORD" \
             -T /usr/bin/codesign \
@@ -61,14 +93,17 @@ jobs:
           API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
           API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
         run: |
-          mkdir -p ~/private_keys
-          echo "$API_KEY_BASE64" | base64 --decode > ~/private_keys/AuthKey_${API_KEY_ID}.p8
+          umask 077
+          install -d -m 700 "$HOME/private_keys"
+          KEY_PATH="$HOME/private_keys/AuthKey_${API_KEY_ID}.p8"
+          printf '%s' "$API_KEY_BASE64" | base64 --decode > "$KEY_PATH"
+          chmod 600 "$KEY_PATH"
 
       - name: Compute build number
         run: |
-          # Monotonic build number from epoch seconds since Jan 2026; fits CFBundleVersion conventions
+          # Monotonic build number from epoch seconds since Jan 2025; fits CFBundleVersion conventions
           BUILD_NUM=$(( ($(date +%s) - 1735689600) / 60 ))
-          echo "BUILD_NUM=$BUILD_NUM" >> $GITHUB_ENV
+          echo "BUILD_NUM=$BUILD_NUM" >> "$GITHUB_ENV"
           echo "Build number: $BUILD_NUM (from $(date -u))"
 
       - name: Archive
@@ -76,25 +111,25 @@ jobs:
           DEVELOPMENT_TEAM: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           xcodebuild -project EaselWall.xcodeproj \
-            -scheme $SCHEME \
+            -scheme "$SCHEME" \
             -configuration AppStore \
             -destination 'generic/platform=macOS' \
-            -archivePath build/$APP_NAME.xcarchive \
+            -archivePath "build/$APP_NAME.xcarchive" \
             -allowProvisioningUpdates \
-            -authenticationKeyPath ~/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}.p8 \
-            -authenticationKeyID ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }} \
-            -authenticationKeyIssuerID ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }} \
-            MARKETING_VERSION=$VERSION \
-            CURRENT_PROJECT_VERSION=$BUILD_NUM \
-            DEVELOPMENT_TEAM=$DEVELOPMENT_TEAM \
+            -authenticationKeyPath "$HOME/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}.p8" \
+            -authenticationKeyID "${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}" \
+            -authenticationKeyIssuerID "${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}" \
+            MARKETING_VERSION="$VERSION" \
+            CURRENT_PROJECT_VERSION="$BUILD_NUM" \
+            DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
             archive
 
       - name: Verify App Store archive has no Sparkle linkage
         run: |
-          APP_PATH=$(find build/$APP_NAME.xcarchive/Products/Applications -name "$APP_NAME.app" -maxdepth 2 | head -1)
-          if [ -z "$APP_PATH" ]; then
+          APP_PATH="build/$APP_NAME.xcarchive/Products/Applications/$APP_NAME.app"
+          if [[ ! -d "$APP_PATH" ]]; then
             echo "::error::App not found in archive"
-            ls -R build/$APP_NAME.xcarchive/Products
+            ls -R "build/$APP_NAME.xcarchive/Products"
             exit 1
           fi
           if otool -L "$APP_PATH/Contents/MacOS/$APP_NAME" | grep -q Sparkle; then
@@ -123,13 +158,13 @@ jobs:
           </plist>
           EOF
           xcodebuild -exportArchive \
-            -archivePath build/$APP_NAME.xcarchive \
+            -archivePath "build/$APP_NAME.xcarchive" \
             -exportPath build/export \
             -exportOptionsPlist build/ExportOptions.plist \
             -allowProvisioningUpdates \
-            -authenticationKeyPath ~/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}.p8 \
-            -authenticationKeyID ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }} \
-            -authenticationKeyIssuerID ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+            -authenticationKeyPath "$HOME/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}.p8" \
+            -authenticationKeyID "${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}" \
+            -authenticationKeyIssuerID "${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}"
           ls -la build/export
 
       - name: Upload to App Store Connect
@@ -137,12 +172,14 @@ jobs:
           API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
           API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
         run: |
-          PKG_PATH=$(find build/export -name "*.pkg" -maxdepth 1 | head -1)
-          if [[ -z "$PKG_PATH" ]]; then
-            echo "::error::No .pkg produced by export step"
+          shopt -s nullglob
+          PACKAGES=(build/export/*.pkg)
+          if (( ${#PACKAGES[@]} != 1 )); then
+            echo "::error::Expected exactly one .pkg from export; found ${#PACKAGES[@]}"
             ls -la build/export
             exit 1
           fi
+          PKG_PATH="${PACKAGES[0]}"
           echo "Uploading $PKG_PATH"
           xcrun altool --upload-app \
             -f "$PKG_PATH" \
@@ -153,5 +190,7 @@ jobs:
       - name: Cleanup keychain
         if: always()
         run: |
-          security delete-keychain $RUNNER_TEMP/app-signing.keychain-db 2>/dev/null || true
-          rm -rf ~/private_keys
+          security delete-keychain "$RUNNER_TEMP/app-signing.keychain-db" 2>/dev/null || true
+          rm -f "$RUNNER_TEMP/cert.p12"
+          rm -f "$HOME/private_keys/AuthKey_${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}.p8"
+          rmdir "$HOME/private_keys" 2>/dev/null || true
