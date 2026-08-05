@@ -12,7 +12,12 @@ final class AppSettings: ObservableObject {
     @AppStorage("rotationHour") var rotationHour: Int = 0
     @AppStorage("rotationMinute") var rotationMinute: Int = 0
     @AppStorage("launchAtLogin") var launchAtLogin: Bool = false
-    @AppStorage("rijksmuseumAPIKey") var rijksmuseumAPIKey: String = ""
+
+    init(defaults: UserDefaults = .standard) {
+        // Earlier versions stored a user-supplied Rijksmuseum API key.
+        // The current data API is keyless, so delete that obsolete credential.
+        defaults.removeObject(forKey: "rijksmuseumAPIKey")
+    }
 
     var matColor: Color {
         Color(hex: matColorHex) ?? Color(red: 0.96, green: 0.94, blue: 0.92)
@@ -22,9 +27,6 @@ final class AppSettings: ObservableObject {
         NSColor(hex: matColorHex) ?? NSColor(red: 0.96, green: 0.94, blue: 0.92, alpha: 1.0)
     }
 
-    var hasRijksmuseumKey: Bool {
-        !rijksmuseumAPIKey.trimmingCharacters(in: .whitespaces).isEmpty
-    }
 }
 
 enum MatSpacing: String, CaseIterable, Codable {

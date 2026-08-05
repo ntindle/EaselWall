@@ -2,7 +2,7 @@
 
 ## Image Licensing Authorization
 
-EaselWall displays public-domain impressionist paintings sourced under CC0 (Creative Commons Zero) from the following museum open-access programs:
+EaselWall displays impressionist paintings using digital reproductions that the source institution marks CC0 (Creative Commons Zero) or Public Domain Mark 1.0 through the following museum open-access programs:
 
 ### Art Institute of Chicago
 - **Open Access Policy:** https://www.artic.edu/open-access
@@ -16,17 +16,19 @@ EaselWall displays public-domain impressionist paintings sourced under CC0 (Crea
 - **API Documentation:** https://metmuseum.github.io/
 - **Quote:** "You are free to copy, modify, and distribute the works, even for commercial purposes, all without asking permission."
 
-### Rijksmuseum (optional — requires user-provided API key)
+### Rijksmuseum (optional, keyless collection fetch)
 - **Data Policy:** https://data.rijksmuseum.nl/policy
-- **License:** CC0 1.0 / Public Domain Mark
-- **API Terms:** https://data.rijksmuseum.nl/policy
-- **Note:** Rijksmuseum images are only fetched if the user provides their own free API key in Settings. No Rijksmuseum images are bundled with the app.
+- **License:** CC0 1.0 / Public Domain Mark 1.0
+- **Search API:** https://data.rijksmuseum.nl/docs/search
+- **Object metadata:** https://data.rijksmuseum.nl/docs/http (`edm-framed` profile)
+- **Image API:** https://data.rijksmuseum.nl/docs/iiif/image
+- **Note:** The current Rijksmuseum Data Services API requires no API key. A user may explicitly fetch additional Van Gogh paintings in Settings. The app accepts only object records whose `edmRights` value is CC0 1.0 or Public Domain Mark 1.0, and only image URLs on the documented `iiif.micr.io` host. No Rijksmuseum images are bundled with the app. EaselWall was developed using the Rijksmuseum API.
 
 ## Technical Notes
 
 - The app sets desktop wallpapers using `NSWorkspace.shared.setDesktopImageURL(_:for:options:)`, a public AppKit API that does not require special entitlements.
 - A curated starter collection of ~30 paintings is bundled with the app for offline use.
-- Additional paintings are fetched at runtime from the above museum APIs.
+- Additional paintings are fetched at runtime from the above museum APIs. If the Rijksmuseum search succeeds but all object-detail or image-metadata requests fail, the app reports that the collection is temporarily unavailable instead of presenting the outage as zero results.
 - The app requires an internet connection to discover new paintings beyond the bundled set.
 
 ## Content Rating

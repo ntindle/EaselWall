@@ -11,7 +11,7 @@ import tempfile
 import unittest
 import urllib.error
 import urllib.response
-from datetime import date
+from datetime import date, timedelta
 from email.message import Message
 from pathlib import Path
 from unittest.mock import patch
@@ -73,6 +73,13 @@ def request_item(request_id, access_type):
     }
 
 
+EASELWALL_APP = reports.AppInfo(
+    app_id=reports.DEFAULT_APP_ID,
+    name="EaselWall",
+    bundle_id=reports.DEFAULT_BUNDLE_ID,
+)
+
+
 class CredentialTests(unittest.TestCase):
     def test_missing_environment_variable_names_are_reported_without_values(self):
         with self.assertRaises(reports.ConfigurationError) as raised:
@@ -112,10 +119,32 @@ class ResolutionTests(unittest.TestCase):
         )
 
         app = reports.resolve_app(
-            client, app_id="6778701883", bundle_id="ignored.example"
+            client, app_id="6778701883", bundle_id="com.ntindle.EaselWall"
         )
 
         self.assertEqual(app.name, "EaselWall")
+
+    def test_explicit_app_id_must_resolve_to_expected_bundle(self):
+        client = FakeClient(
+            responses={
+                ("GET", "/v1/apps/6778701883"): {
+                    "data": {
+                        **app_item(),
+                        "attributes": {
+                            "name": "Another App",
+                            "bundleId": "example.other",
+                        },
+                    }
+                }
+            }
+        )
+
+        with self.assertRaisesRegex(reports.DataError, "not expected EaselWall"):
+            reports.resolve_app(
+                client,
+                app_id="6778701883",
+                bundle_id="com.ntindle.EaselWall",
+            )
 
 
 class BootstrapTests(unittest.TestCase):
@@ -305,6 +334,7 @@ class AnalyticsTraversalTests(unittest.TestCase):
             paths = reports.download_target_reports(
                 client,
                 [request],
+                app=EASELWALL_APP,
                 access_type="AUTO",
                 output_dir=Path(temporary_directory),
                 output=output,
@@ -506,6 +536,7 @@ class DownloadAndReportTests(unittest.TestCase):
         report_name=None,
         report_id=None,
         instance_id=None,
+        extra_header=None,
     ):
         report_name = report_name or reports.PURCHASES_STANDARD_REPORT
         report_id = report_id or f"report-{reports.report_slug(report_name)}"
@@ -513,6 +544,8 @@ class DownloadAndReportTests(unittest.TestCase):
         header = "Date\tPurchases\tProceeds in USD"
         if report_name == reports.PURCHASES_DETAILED_REPORT:
             header += "\tCampaign"
+        if extra_header is not None:
+            header += f"\t{extra_header}"
         source = (header + "\n" + "".join(rows)).encode()
         compressed = gzip.compress(source, mtime=0)
         checksum = hashlib.md5(compressed, usedforsecurity=False).hexdigest()
@@ -520,6 +553,7 @@ class DownloadAndReportTests(unittest.TestCase):
         client = FakeClient(downloads={signed_url: compressed})
         path, _ = reports.download_segment(
             client,
+            app=EASELWALL_APP,
             request=reports.ReportRequest(request_id, access_type),
             report=reports.AnalyticsReport(
                 report_id, report_name, "COMMERCE"
@@ -558,6 +592,7 @@ class DownloadAndReportTests(unittest.TestCase):
             output_dir = Path(temporary_directory)
             tsv_path, downloaded = reports.download_segment(
                 client,
+                app=EASELWALL_APP,
                 request=request,
                 report=report,
                 instance=instance,
@@ -572,11 +607,16 @@ class DownloadAndReportTests(unittest.TestCase):
             self.assertEqual(gzip_path.read_bytes(), compressed)
             self.assertEqual(tsv_path.read_bytes(), source)
             self.assertNotIn("signature=private", metadata_path.read_text())
+            metadata = json.loads(metadata_path.read_text())
+            self.assertEqual(metadata["appId"], reports.DEFAULT_APP_ID)
+            self.assertEqual(metadata["bundleId"], reports.DEFAULT_BUNDLE_ID)
+            self.assertEqual(metadata["schemaVersion"], 2)
             self.assertEqual(gzip_path.stat().st_mode & 0o777, 0o600)
             self.assertEqual(tsv_path.stat().st_mode & 0o777, 0o600)
 
             _, downloaded_again = reports.download_segment(
                 client,
+                app=EASELWALL_APP,
                 request=request,
                 report=report,
                 instance=instance,
@@ -612,6 +652,7 @@ class DownloadAndReportTests(unittest.TestCase):
             output_dir = Path(temporary_directory)
             tsv_path, _ = reports.download_segment(
                 client,
+                app=EASELWALL_APP,
                 request=request,
                 report=report,
                 instance=instance,
@@ -629,6 +670,7 @@ class DownloadAndReportTests(unittest.TestCase):
 
             _, downloaded = reports.download_segment(
                 client,
+                app=EASELWALL_APP,
                 request=request,
                 report=report,
                 instance=instance,
@@ -698,6 +740,62 @@ class DownloadAndReportTests(unittest.TestCase):
             self.assertIn("2026-08-01\t2\t5.10", canonical)
             self.assertNotIn("Campaign", canonical)
 
+    def test_report_defaults_to_rolling_365_days_across_calendar_years(self):
+        as_of = date(2026, 2, 1)
+        period = reports.ReportingPeriod.trailing_365(as_of)
+        source = (
+            "Date\tPurchases\tProceeds in USD\n"
+            f"{period.start_date.isoformat()}\t1\t2.55\n"
+            "2026-01-31\t2\t5.10\n"
+        )
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            input_path = root / "purchases.tsv"
+            report_path = root / "weekly.md"
+            canonical_path = root / "canonical.tsv"
+            input_path.write_text(source)
+
+            exit_code = reports.main(
+                [
+                    "report",
+                    "--input",
+                    str(input_path),
+                    "--output",
+                    str(report_path),
+                    "--canonical-output",
+                    str(canonical_path),
+                    "--as-of",
+                    as_of.isoformat(),
+                ],
+                environ={},
+                stdout=stdout,
+                stderr=stderr,
+            )
+
+            self.assertEqual(exit_code, reports.EXIT_OK)
+            self.assertEqual(stderr.getvalue(), "")
+            self.assertIn("3 net purchase(s)", stdout.getvalue())
+            self.assertIn("trailing 365 days", stdout.getvalue())
+            self.assertIn(period.start_date.isoformat(), report_path.read_text())
+            self.assertIn(period.start_date.isoformat(), canonical_path.read_text())
+
+    def test_year_retains_calendar_year_mode(self):
+        source = (
+            "Date\tPurchases\tProceeds in USD\n"
+            "2025-12-31\t10\t25.50\n"
+            "2026-01-01\t1\t2.55\n"
+        )
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            input_path = Path(temporary_directory) / "purchases.tsv"
+            input_path.write_text(source)
+            summary = reports.summarize_purchases(input_path, year=2026)
+
+        self.assertEqual(summary.purchases, 1)
+        self.assertEqual(summary.proceeds, reports.Decimal("2.55"))
+        self.assertEqual(summary.period.mode, reports.PERIOD_CALENDAR_YEAR)
+
     def test_purchase_summary_treats_negative_purchases_as_refunds(self):
         source = (
             "Date\tPurchases\tProceeds in USD\n"
@@ -712,6 +810,68 @@ class DownloadAndReportTests(unittest.TestCase):
         self.assertEqual(summary.purchases, 1)
         self.assertEqual(summary.refund_units, 1)
         self.assertEqual(str(summary.proceeds), "2.55")
+
+    def test_trailing_365_period_includes_both_boundaries_only(self):
+        as_of = date(2026, 8, 5)
+        period = reports.ReportingPeriod.trailing_365(as_of)
+        source = (
+            "Date\tPurchases\tProceeds in USD\n"
+            f"{(period.start_date - timedelta(days=1)).isoformat()}\t10\t25.50\n"
+            f"{period.start_date.isoformat()}\t1\t2.55\n"
+            f"{period.end_date.isoformat()}\t2\t5.10\n"
+            f"{(period.end_date + timedelta(days=1)).isoformat()}\t20\t51.00\n"
+        )
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            input_path = Path(temporary_directory) / "purchases.tsv"
+            input_path.write_text(source)
+            summary = reports.summarize_purchases(input_path, period=period)
+
+        self.assertEqual((period.end_date - period.start_date).days + 1, 365)
+        self.assertEqual(summary.purchases, 3)
+        self.assertEqual(summary.proceeds, reports.Decimal("7.65"))
+        self.assertEqual(summary.dates, {period.start_date, period.end_date})
+
+    def test_app_apple_identifier_is_validated_when_column_is_present(self):
+        source = (
+            "Date\tApp Apple Identifier\tPurchases\tProceeds in USD\n"
+            "2026-08-01\t6778701883\t1\t2.55\n"
+            "2026-08-02\t9999999999\t1\t2.55\n"
+        )
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            input_path = Path(temporary_directory) / "purchases.tsv"
+            input_path.write_text(source)
+            with self.assertRaisesRegex(
+                reports.DataError, "Unexpected 'App Apple Identifier'"
+            ):
+                reports.summarize_purchases(input_path, year=2026)
+
+    def test_managed_report_app_id_and_bundle_id_are_enforced(self):
+        for metadata_field, wrong_value, expected_message in (
+            ("appId", "9999999999", "not EaselWall app"),
+            ("bundleId", "example.other", "not EaselWall bundle"),
+        ):
+            with self.subTest(metadata_field=metadata_field):
+                with tempfile.TemporaryDirectory() as temporary_directory:
+                    root = Path(temporary_directory)
+                    path = self._download_purchase_fixture(
+                        root,
+                        request_id="ongoing",
+                        access_type="ONGOING",
+                        processing_date=date(2026, 8, 5),
+                        segment_id=f"wrong-{metadata_field}",
+                        rows=["2026-08-01\t1\t2.55\n"],
+                    )
+                    metadata_path = path.with_suffix(".metadata.json")
+                    metadata = json.loads(metadata_path.read_text())
+                    metadata[metadata_field] = wrong_value
+                    metadata_path.write_text(json.dumps(metadata))
+
+                    with self.assertRaisesRegex(
+                        reports.DataError, expected_message
+                    ):
+                        reports.summarize_purchases(
+                            root / "downloads", year=2026
+                        )
 
     def test_explicit_campaign_tsv_cannot_become_authoritative_revenue(self):
         source = (
@@ -752,14 +912,14 @@ class DownloadAndReportTests(unittest.TestCase):
                 segment_id="new-aug-1",
                 rows=["2026-08-01\t1\t2.55\n"],
             )
-            # For August 2, processing dates tie, so ongoing wins over snapshot.
+            # For August 2, equal-date snapshot and ongoing contents deduplicate.
             self._download_purchase_fixture(
                 output_dir,
                 request_id="snapshot-tie",
                 access_type="ONE_TIME_SNAPSHOT",
                 processing_date=date(2026, 8, 6),
                 segment_id="snapshot-aug-2",
-                rows=["2026-08-02\t3\t7.65\n"],
+                rows=["2026-08-02\t1\t2.55\n"],
             )
             self._download_purchase_fixture(
                 output_dir,
@@ -965,6 +1125,7 @@ class DownloadAndReportTests(unittest.TestCase):
             with self.assertRaises(reports.DataError):
                 reports.download_segment(
                     client,
+                    app=EASELWALL_APP,
                     request=reports.ReportRequest("request", "ONGOING"),
                     report=reports.AnalyticsReport(
                         "report", reports.PURCHASES_REPORT, "COMMERCE"
@@ -998,6 +1159,117 @@ class DownloadAndReportTests(unittest.TestCase):
                 reports.DataError, "Conflicting App Store Purchases Standard instances"
             ):
                 reports.summarize_purchases(root / "downloads", year=2026)
+
+    def test_cross_access_equal_processing_date_conflict_fails(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            self._download_purchase_fixture(
+                root,
+                request_id="snapshot",
+                access_type="ONE_TIME_SNAPSHOT",
+                processing_date=date(2026, 8, 5),
+                segment_id="snapshot",
+                rows=["2026-08-01\t1\t2.55\n"],
+            )
+            self._download_purchase_fixture(
+                root,
+                request_id="ongoing",
+                access_type="ONGOING",
+                processing_date=date(2026, 8, 5),
+                segment_id="ongoing",
+                rows=["2026-08-01\t2\t5.10\n"],
+            )
+
+            with self.assertRaisesRegex(
+                reports.DataError,
+                "Conflicting App Store Purchases Standard instances",
+            ):
+                reports.summarize_purchases(root / "downloads", year=2026)
+
+    def test_cross_access_tie_compares_complete_rows_not_only_totals(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            self._download_purchase_fixture(
+                root,
+                request_id="snapshot",
+                access_type="ONE_TIME_SNAPSHOT",
+                processing_date=date(2026, 8, 5),
+                segment_id="snapshot-app-name",
+                extra_header="App Name",
+                rows=["2026-08-01\t1\t2.55\tEaselWall\n"],
+            )
+            self._download_purchase_fixture(
+                root,
+                request_id="ongoing",
+                access_type="ONGOING",
+                processing_date=date(2026, 8, 5),
+                segment_id="ongoing-app-name",
+                extra_header="App Name",
+                rows=["2026-08-01\t1\t2.55\tOther Name\n"],
+            )
+
+            with self.assertRaisesRegex(
+                reports.DataError,
+                "Conflicting App Store Purchases Standard instances",
+            ):
+                reports.summarize_purchases(root / "downloads", year=2026)
+
+    def test_cross_access_equal_processing_date_identical_contents_deduplicate(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            for request_id, access_type in (
+                ("snapshot", "ONE_TIME_SNAPSHOT"),
+                ("ongoing", "ONGOING"),
+            ):
+                self._download_purchase_fixture(
+                    root,
+                    request_id=request_id,
+                    access_type=access_type,
+                    processing_date=date(2026, 8, 5),
+                    segment_id="shared-segment",
+                    report_id="shared-report",
+                    instance_id="shared-instance",
+                    rows=["2026-08-01\t1\t2.55\n"],
+                )
+
+            summary = reports.summarize_purchases(
+                root / "downloads", year=2026
+            )
+
+        self.assertEqual(summary.purchases, 1)
+        self.assertEqual(summary.proceeds, reports.Decimal("2.55"))
+        self.assertEqual(summary.files_scanned, 2)
+        self.assertEqual(summary.files, 1)
+        self.assertEqual(summary.superseded_rows, 1)
+
+    def test_cross_access_equal_processing_date_nonoverlapping_batches_coexist(self):
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            root = Path(temporary_directory)
+            self._download_purchase_fixture(
+                root,
+                request_id="snapshot",
+                access_type="ONE_TIME_SNAPSHOT",
+                processing_date=date(2026, 8, 5),
+                segment_id="snapshot-history",
+                rows=["2026-07-01\t1\t2.55\n"],
+            )
+            self._download_purchase_fixture(
+                root,
+                request_id="ongoing",
+                access_type="ONGOING",
+                processing_date=date(2026, 8, 5),
+                segment_id="ongoing-recent",
+                rows=["2026-08-01\t2\t5.10\n"],
+            )
+
+            summary = reports.summarize_purchases(
+                root / "downloads", year=2026
+            )
+
+        self.assertEqual(summary.purchases, 3)
+        self.assertEqual(summary.proceeds, reports.Decimal("7.65"))
+        self.assertEqual(summary.files, 2)
+        self.assertEqual(summary.superseded_rows, 0)
 
     def test_distinct_segments_of_one_report_instance_form_one_dataset(self):
         with tempfile.TemporaryDirectory() as temporary_directory:
@@ -1098,6 +1370,7 @@ class DownloadAndReportTests(unittest.TestCase):
             paths = reports.download_target_reports(
                 client,
                 [request],
+                app=EASELWALL_APP,
                 access_type="AUTO",
                 output_dir=Path(temporary_directory),
                 output=io.StringIO(),
@@ -1124,6 +1397,12 @@ class DownloadAndReportTests(unittest.TestCase):
 
         self.assertEqual(payload["scope"]["accessType"], "ONGOING")
         self.assertEqual(payload["scope"]["requestId"], "ongoing-request")
+        self.assertEqual(payload["scope"]["appId"], reports.DEFAULT_APP_ID)
+        self.assertEqual(payload["scope"]["bundleId"], reports.DEFAULT_BUNDLE_ID)
+        self.assertEqual(
+            payload["scope"]["reportingPeriod"]["mode"],
+            reports.PERIOD_CALENDAR_YEAR,
+        )
         self.assertTrue(payload["standardDataAvailable"])
         self.assertEqual(payload["proceedsInUSD"], "2.55")
 

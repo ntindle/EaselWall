@@ -1,4 +1,4 @@
-.PHONY: build release dmg sign notarize sha256 clean generate-project generate-appstore-project archive export-appstore upload-appstore screenshots screenshots-clean appstore-marketing-screenshots app-store-report-status app-store-report-bootstrap app-store-report-snapshot app-store-report-fetch app-store-report marketing-videos marketing-video
+.PHONY: build release dmg sign notarize sha256 clean generate-project generate-appstore-project validate-release-version archive export-appstore upload-appstore screenshots screenshots-clean appstore-marketing-screenshots app-store-report-status app-store-report-bootstrap app-store-report-snapshot app-store-report-fetch app-store-report marketing-videos marketing-video
 
 APP_NAME = EaselWall
 BUNDLE_ID = com.ntindle.EaselWall
@@ -6,6 +6,15 @@ SCHEME = EaselWall
 BUILD_DIR = build
 RELEASE_DIR = $(BUILD_DIR)/release
 VERSION ?= $(shell git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "0.0.0-dev")
+# Direct, App Store, and local builds share RUN.CHANNEL.ATTEMPT formatting.
+# RUN is UTC seconds since 2025-01-01; CI fixes channels to 1 (direct) and 2
+# (App Store), while local builds default to 0. Override these for a
+# reproducible or channel-specific local build.
+SHIPPED_BUILD_FLOOR = 837975
+BUILD_RUN ?= $(shell current_epoch=$$(date -u +%s); echo $$((current_epoch - 1735689600)))
+BUILD_CHANNEL ?= 0
+BUILD_ATTEMPT ?= 0
+override BUILD_NUM := $(BUILD_RUN).$(BUILD_CHANNEL).$(BUILD_ATTEMPT)
 DMG_NAME = $(APP_NAME)-$(VERSION).dmg
 IDENTITY ?= Developer ID Application
 
@@ -18,6 +27,31 @@ generate-appstore-project:
 	./scripts/prepare_appstore_project.py "$(APPSTORE_PROJECT_SPEC)"
 	xcodegen generate --spec "$(APPSTORE_PROJECT_SPEC)" --project . --project-root .
 
+validate-release-version:
+	@build_num="$(BUILD_NUM)"; \
+	if ! printf '%s\n' "$(VERSION)" | grep -Eq '^(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})$$'; then \
+		echo "VERSION must use canonical MAJOR.MINOR.PATCH components from 0 to 999 (got: $(VERSION))" >&2; \
+		exit 1; \
+	elif ! printf '%s\n' "$(BUILD_RUN)" | grep -Eq '^(0|[1-9][0-9]*)$$'; then \
+		echo "BUILD_RUN must be UTC seconds since 2025-01-01" >&2; \
+		exit 1; \
+	elif [ "$(BUILD_RUN)" -le "$(SHIPPED_BUILD_FLOOR)" ]; then \
+		echo "Build run $(BUILD_RUN) must exceed shipped build $(SHIPPED_BUILD_FLOOR)" >&2; \
+		exit 1; \
+	elif ! printf '%s\n' "$(BUILD_CHANNEL)" | grep -Eq '^(0|[1-9][0-9]*)$$'; then \
+		echo "BUILD_CHANNEL must be canonical numeric" >&2; \
+		exit 1; \
+	elif ! printf '%s\n' "$(BUILD_ATTEMPT)" | grep -Eq '^(0|[1-9][0-9]*)$$'; then \
+		echo "BUILD_ATTEMPT must be numeric" >&2; \
+		exit 1; \
+	elif ! printf '%s\n' "$(BUILD_NUM)" | grep -Eq '^(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*)){0,2}$$'; then \
+		echo "BUILD_NUM must contain 1-3 numeric components" >&2; \
+		exit 1; \
+	elif [ "$${#build_num}" -gt 18 ]; then \
+		echo "BUILD_NUM must be at most 18 characters" >&2; \
+		exit 1; \
+	fi
+
 build: generate-project
 	xcodebuild -project EaselWall.xcodeproj \
 		-scheme $(SCHEME) \
@@ -25,13 +59,14 @@ build: generate-project
 		-destination 'platform=macOS' \
 		build
 
-release: generate-project
+release: validate-release-version generate-project
 	xcodebuild -project EaselWall.xcodeproj \
 		-scheme $(SCHEME) \
 		-configuration Release \
 		-destination 'platform=macOS' \
 		-derivedDataPath $(BUILD_DIR)/DerivedData \
-		MARKETING_VERSION=$(VERSION) \
+		MARKETING_VERSION="$(VERSION)" \
+		CURRENT_PROJECT_VERSION="$(BUILD_NUM)" \
 		build
 	@mkdir -p $(RELEASE_DIR)
 	@cp -R "$(BUILD_DIR)/DerivedData/Build/Products/Release/$(APP_NAME).app" "$(RELEASE_DIR)/"
@@ -75,14 +110,14 @@ ARCHIVE_PATH = $(BUILD_DIR)/$(APP_NAME).xcarchive
 EXPORT_PATH = $(BUILD_DIR)/appstore-export
 EXPORT_OPTIONS = $(BUILD_DIR)/ExportOptions-AppStore.plist
 
-archive: generate-appstore-project
+archive: validate-release-version generate-appstore-project
 	xcodebuild -project EaselWall.xcodeproj \
 		-scheme $(SCHEME) \
 		-configuration AppStore \
 		-destination 'generic/platform=macOS' \
 		-archivePath "$(ARCHIVE_PATH)" \
-		MARKETING_VERSION=$(VERSION) \
-		CURRENT_PROJECT_VERSION=$(shell echo $(VERSION) | tr -dc '0-9' | head -c 4) \
+		MARKETING_VERSION="$(VERSION)" \
+		CURRENT_PROJECT_VERSION="$(BUILD_NUM)" \
 		archive
 	@echo "Archived: $(ARCHIVE_PATH)"
 

@@ -268,17 +268,6 @@
     "Rijksmuseum" : {
       "localizations" : {}
     },
-    "API Key" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Clave de API" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Clé API" } },
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "API-Schlüssel" } },
-        "ja" : { "stringUnit" : { "state" : "translated", "value" : "APIキー" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "API密钥" } },
-        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Chave de API" } },
-        "nl" : { "stringUnit" : { "state" : "translated", "value" : "API-sleutel" } }
-      }
-    },
     "Fetch Paintings" : {
       "localizations" : {
         "es" : { "stringUnit" : { "state" : "translated", "value" : "Obtener pinturas" } },
@@ -290,15 +279,48 @@
         "nl" : { "stringUnit" : { "state" : "translated", "value" : "Schilderijen ophalen" } }
       }
     },
-    "Get a free API key at rijksmuseum.nl to expand the collection." : {
+    "No API key required. Fetch public-domain Van Gogh paintings from the Rijksmuseum Collection." : {
       "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Obtén una clave de API gratuita en rijksmuseum.nl para ampliar la colección." } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Obtenez une clé API gratuite sur rijksmuseum.nl pour enrichir la collection." } },
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Holen Sie sich einen kostenlosen API-Schlüssel auf rijksmuseum.nl, um die Sammlung zu erweitern." } },
-        "ja" : { "stringUnit" : { "state" : "translated", "value" : "rijksmuseum.nlで無料のAPIキーを取得してコレクションを拡張できます。" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "在rijksmuseum.nl获取免费API密钥以扩展收藏。" } },
-        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Obtenha uma chave de API gratuita em rijksmuseum.nl para expandir a coleção." } },
-        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Haal een gratis API-sleutel op bij rijksmuseum.nl om de collectie uit te breiden." } }
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No se necesita clave de API. Obtén pinturas de Van Gogh de dominio público de la Colección Rijksmuseum." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Aucune clé API requise. Récupérez des tableaux de Van Gogh du domaine public dans la collection du Rijksmuseum." } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Kein API-Schlüssel erforderlich. Laden Sie gemeinfreie Van-Gogh-Gemälde aus der Rijksmuseum-Sammlung." } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "APIキーは不要です。Rijksmuseumコレクションからパブリックドメインのゴッホ作品を取得します。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "无需 API 密钥。从 Rijksmuseum 馆藏中获取公有领域的梵高画作。" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Nenhuma chave de API é necessária. Busque pinturas de Van Gogh em domínio público da Coleção Rijksmuseum." } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Geen API-sleutel nodig. Haal Van Gogh-schilderijen in het publieke domein op uit de Rijksmuseum-collectie." } }
+      }
+    },
+    "Couldn’t load Rijksmuseum paintings. Try again later." : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "No se pudieron cargar las pinturas del Rijksmuseum. Inténtalo de nuevo más tarde." } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Impossible de charger les tableaux du Rijksmuseum. Réessayez plus tard." } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Die Rijksmuseum-Gemälde konnten nicht geladen werden. Versuchen Sie es später erneut." } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "Rijksmuseumの作品を読み込めませんでした。後でもう一度お試しください。" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "无法加载 Rijksmuseum 画作。请稍后再试。" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Não foi possível carregar as pinturas do Rijksmuseum. Tente novamente mais tarde." } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "De schilderijen van het Rijksmuseum konden niet worden geladen. Probeer het later opnieuw." } }
+      }
+    },
+    "Artwork images marked CC0 or Public Domain Mark by their source:" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "Imágenes de obras marcadas por su fuente como CC0 o Marca de Dominio Público:" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Images d’œuvres signalées par leur source comme CC0 ou Public Domain Mark :" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "Werkabbildungen, die von ihrer Quelle als CC0 oder Public Domain Mark gekennzeichnet sind:" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "提供元がCC0またはパブリックドメインマークと表示している作品画像：" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "由来源标记为 CC0 或公有领域标志的作品图像：" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Imagens de obras marcadas pela fonte como CC0 ou Marca de Domínio Público:" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Afbeeldingen die door de bron als CC0 of Public Domain Mark zijn gemarkeerd:" } }
+      }
+    },
+    "developed using the Rijksmuseum API" : {
+      "localizations" : {
+        "es" : { "stringUnit" : { "state" : "translated", "value" : "desarrollado utilizando la API del Rijksmuseum" } },
+        "fr" : { "stringUnit" : { "state" : "translated", "value" : "développé à l’aide de l’API du Rijksmuseum" } },
+        "de" : { "stringUnit" : { "state" : "translated", "value" : "entwickelt unter Verwendung der Rijksmuseum-API" } },
+        "ja" : { "stringUnit" : { "state" : "translated", "value" : "Rijksmuseum APIを使用して開発" } },
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "使用 Rijksmuseum API 开发" } },
+        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "desenvolvido usando a API do Rijksmuseum" } },
+        "nl" : { "stringUnit" : { "state" : "translated", "value" : "ontwikkeld met behulp van de Rijksmuseum-API" } }
       }
     },
     "EaselWall" : {
@@ -316,17 +338,6 @@
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "收藏中有 %lld 幅画作" } },
         "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "%lld pinturas na coleção" } },
         "nl" : { "stringUnit" : { "state" : "translated", "value" : "%lld schilderijen in collectie" } }
-      }
-    },
-    "Images sourced under CC0 from:" : {
-      "localizations" : {
-        "es" : { "stringUnit" : { "state" : "translated", "value" : "Imágenes bajo licencia CC0 de:" } },
-        "fr" : { "stringUnit" : { "state" : "translated", "value" : "Images sous licence CC0 provenant de :" } },
-        "de" : { "stringUnit" : { "state" : "translated", "value" : "Bilder unter CC0-Lizenz von:" } },
-        "ja" : { "stringUnit" : { "state" : "translated", "value" : "CC0ライセンスの画像提供元:" } },
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "图片来源（CC0许可）：" } },
-        "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Imagens sob licença CC0 de:" } },
-        "nl" : { "stringUnit" : { "state" : "translated", "value" : "Afbeeldingen onder CC0 van:" } }
       }
     },
     "%@ display" : {

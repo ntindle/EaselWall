@@ -213,6 +213,9 @@ section { padding: 88px 0; position: relative; }
   display: flex;
   gap: 28px;
   align-items: baseline;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  row-gap: 8px;
   font-size: 0.78rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -401,11 +404,11 @@ h1.hero-title .amp {
   box-shadow:
     0 0 0 1px rgba(26,18,11,0.25),
     inset 0 2px 8px rgba(26,18,11,0.2);
-  background: #2A1D12;
+  background: var(--mat);
 }
 .canvas-window img {
   width: 100%; height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
 }
 
@@ -728,13 +731,14 @@ h1.hero-title .amp {
 .easel-slide {
   position: absolute;
   inset: 0;
+  background: var(--mat);
   opacity: 0;
   transition: opacity 1.4s ease;
 }
 .easel-slide.active { opacity: 1; }
 .easel-slide img {
   width: 100%; height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
 }
 
@@ -1082,7 +1086,7 @@ footer {
   .section-head .lbl { display: none; }
   .footer-grid { grid-template-columns: 1fr; text-align: center; }
   .footer-grid .right { text-align: center; }
-  .topbar-meta { gap: 16px; font-size: 0.7rem; }
+  .topbar-meta { gap: 8px 16px; font-size: 0.7rem; }
   section { padding: 64px 0; }
   .exhibit { padding: 72px 0 80px; }
   .pullquote { padding: 80px 0; }
@@ -1094,6 +1098,7 @@ footer {
 @media (max-width: 540px) {
   body { font-size: 16px; }
   .container, .container-narrow { padding: 0 22px; }
+  .topbar-meta { justify-content: flex-start; }
   .topbar-meta span:first-child { display: none; }
   .marquee-track { font-size: 1.25rem; gap: 32px; }
   .marquee-track span { gap: 32px; }
@@ -1129,7 +1134,6 @@ footer {
       <a href="#gallery">Gallery</a>
       <a href="#provenance">Provenance</a>
       <a href="/app-store">App Store &#8599;</a>
-      <a href="https://github.com/ntindle/EaselWall">GitHub &#8599;</a>
     </nav>
   </div>
 </header>
@@ -1164,7 +1168,7 @@ footer {
           </a>
         </div>
 
-        <p class="hero-footnote"><sup>&dagger;</sup> One-time purchase &middot; automatic App Store updates &middot; no account, subscription, ads, or tracking. The source-available build remains free via <a href="https://github.com/ntindle/EaselWall/releases/latest" style="color:var(--brass);border-bottom:1px solid var(--brass)">GitHub</a> and Homebrew.</p>
+        <p class="hero-footnote"><sup>&dagger;</sup> $2.99 once includes automatic App Store updates and supports ongoing curation &middot; no account, subscription, ads, or tracking.</p>
       </div>
 
       <div class="frame-stage">
@@ -1238,7 +1242,7 @@ footer {
       <div class="feature">
         <div class="feature-badge">i</div>
         <h3>Museum <em>mats</em></h3>
-        <p>Each painting is presented on a soft cream mat with a subtle border and shadow &mdash; no stretched pixels, no awkward cropping, no screen clutter.</p>
+        <p>With Museum Mat enabled, each painting is presented on a soft cream mat with a subtle border and shadow &mdash; no stretched pixels, no awkward cropping, no screen clutter.</p>
       </div>
       <div class="feature">
         <div class="feature-badge">ii</div>
@@ -1340,12 +1344,12 @@ footer {
       <div class="process-step">
         <span class="roman">ii.</span>
         <h3>Curate</h3>
-        <p>At a moment of your choosing, a painting is drawn from the bundled open-access collection and matted to your display. Add more van Gogh works with your own Rijksmuseum API key.</p>
+        <p>At a moment of your choosing, a painting is drawn from the bundled open-access collection and matted to your display. Add more public-domain Van Gogh works from the Rijksmuseum Collection without an API key.</p>
       </div>
       <div class="process-step">
         <span class="roman">iii.</span>
         <h3>Enjoy</h3>
-        <p>Close the lid, open it tomorrow, find a different Monet. Or a Degas. Or a Cassatt. Each work stays properly credited, matted, and at its natural proportions.</p>
+        <p>Close the lid, open it tomorrow, find a different Monet. Or a Degas. Or a Cassatt. With Museum Mat enabled, each work stays properly credited, matted, and at its natural proportions.</p>
       </div>
     </div>
   </div>
@@ -1395,15 +1399,15 @@ footer {
         <p>The Met's public-domain collection spans 5,000 years of human creativity &mdash; drawn on selectively for impressionist and post-impressionist work.</p>
       </article>
       <article class="prov-card">
-        <div class="stamp">CC0</div>
+        <div class="stamp">PDM / CC0</div>
         <div class="n">&numero; 03 &middot; Optional</div>
         <h3>Rijksmuseum<br>Amsterdam</h3>
-        <p>Add more van Gogh works from the Rijksmuseum Collection by providing your own free API key in Settings. The bundled catalogue works without one.</p>
+        <p>Add more Van Gogh works from the Rijksmuseum Collection directly in Settings. No API key is required, and EaselWall accepts only records marked CC0 or Public Domain Mark.</p>
       </article>
     </div>
 
     <p class="fine-print">
-      All paintings are drawn from public-domain (CC0) museum collections. EaselWall is not affiliated with, nor endorsed by, any museum named above. All artwork images are in the public domain and may be used for any purpose.
+      EaselWall uses only artwork records that the source institution marks CC0 or Public Domain Mark. Rights status can vary by jurisdiction; consult the linked source record for details. EaselWall is not affiliated with, nor endorsed by, any museum named above. EaselWall was developed using the Rijksmuseum API.
     </p>
 
     <div class="credit-center">

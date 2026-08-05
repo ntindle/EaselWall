@@ -6,21 +6,37 @@ final class PaintingStore: ObservableObject {
     @Published private(set) var catalog: [Painting] = []
     @Published private(set) var currentAssignments: [CGDirectDisplayID: Painting] = [:]
 
+    private static let cachedCatalogVersion = 2
+
     private let historyKey = "paintingHistory"
     private let assignmentsKey = "currentAssignments"
     private let lastRotationDateKey = "lastRotationDate"
+    private let defaults: UserDefaults
+    private let cacheDirectory: URL
+    private let resourceBundle: Bundle
+    private let fileManager: FileManager
 
     private var history: [String] {
-        get { UserDefaults.standard.stringArray(forKey: historyKey) ?? [] }
-        set { UserDefaults.standard.set(newValue, forKey: historyKey) }
+        get { defaults.stringArray(forKey: historyKey) ?? [] }
+        set { defaults.set(newValue, forKey: historyKey) }
     }
 
     private var lastRotationDate: Date? {
-        get { UserDefaults.standard.object(forKey: lastRotationDateKey) as? Date }
-        set { UserDefaults.standard.set(newValue, forKey: lastRotationDateKey) }
+        get { defaults.object(forKey: lastRotationDateKey) as? Date }
+        set { defaults.set(newValue, forKey: lastRotationDateKey) }
     }
 
-    init() {
+    init(
+        defaults: UserDefaults = .standard,
+        cacheDirectory: URL? = nil,
+        resourceBundle: Bundle = .main,
+        fileManager: FileManager = .default
+    ) {
+        self.defaults = defaults
+        self.resourceBundle = resourceBundle
+        self.fileManager = fileManager
+        self.cacheDirectory = cacheDirectory ?? Self.defaultCacheDirectory(fileManager: fileManager)
+
         loadBundledCatalog()
         loadCachedCatalog()
         restoreAssignments()
@@ -29,7 +45,11 @@ final class PaintingStore: ObservableObject {
     // MARK: - Catalog Loading
 
     private func loadBundledCatalog() {
-        guard let url = Bundle.main.url(forResource: "catalog", withExtension: "json", subdirectory: "Paintings") else {
+        guard let url = resourceBundle.url(
+            forResource: "catalog",
+            withExtension: "json",
+            subdirectory: "Paintings"
+        ) else {
             NSLog("[EaselWall] catalog.json not found in bundle")
             return
         }
@@ -50,15 +70,80 @@ final class PaintingStore: ObservableObject {
     }
 
     private func loadCachedCatalog() {
-        let cacheURL = Self.cacheDirectory.appendingPathComponent("cached_catalog.json")
-        guard let data = try? Data(contentsOf: cacheURL),
+        guard let data = try? Data(contentsOf: cachedCatalogURL),
               let decoded = try? JSONDecoder().decode(PaintingCatalog.self, from: data) else {
             return
         }
+
+        let cachedPaintings: [Painting]
+        if decoded.version < Self.cachedCatalogVersion {
+            cachedPaintings = migratePreRightsGateCache(decoded.paintings)
+        } else {
+            cachedPaintings = decoded.paintings
+        }
+
         // Merge cached paintings with bundled, avoiding duplicates
         let existingIDs = Set(catalog.map(\.id))
-        let newPaintings = decoded.paintings.filter { !existingIDs.contains($0.id) }
+        let newPaintings = cachedPaintings.filter { !existingIDs.contains($0.id) }
         catalog.append(contentsOf: newPaintings)
+    }
+
+    /// Cache schema 1 predates the Rijksmuseum rights gate. Remove only those
+    /// unverifiable Rijksmuseum records and their related state, then rewrite the
+    /// remaining cache at schema 2 so the migration is safe to run repeatedly.
+    private func migratePreRightsGateCache(_ paintings: [Painting]) -> [Painting] {
+        let legacyRijksmuseumPaintings = paintings.filter {
+            $0.sourceMuseum == Museum.rijksmuseum.rawValue
+        }
+        let legacyRijksmuseumIDs = Set(
+            legacyRijksmuseumPaintings.map(\.id)
+        )
+        let retainedPaintings = paintings.filter {
+            $0.sourceMuseum != Museum.rijksmuseum.rawValue
+        }
+
+        purgeCachedImages(for: legacyRijksmuseumIDs)
+        purgeHistory(for: legacyRijksmuseumIDs)
+        purgeAssignments(for: legacyRijksmuseumIDs)
+        writeCachedCatalog(retainedPaintings)
+
+        return retainedPaintings
+    }
+
+    private func purgeCachedImages(for paintingIDs: Set<String>) {
+        for paintingID in paintingIDs {
+            guard let imageURL = cachedImageURL(for: paintingID),
+                  fileManager.fileExists(atPath: imageURL.path) else {
+                continue
+            }
+
+            do {
+                try fileManager.removeItem(at: imageURL)
+            } catch {
+                NSLog("[EaselWall] Failed to remove legacy cached image: \(error)")
+            }
+        }
+    }
+
+    private func purgeHistory(for paintingIDs: Set<String>) {
+        guard !paintingIDs.isEmpty else { return }
+        let savedHistory = history
+        let retainedHistory = savedHistory.filter { !paintingIDs.contains($0) }
+        if retainedHistory != savedHistory {
+            history = retainedHistory
+        }
+    }
+
+    private func purgeAssignments(for paintingIDs: Set<String>) {
+        guard !paintingIDs.isEmpty,
+              let saved = defaults.dictionary(forKey: assignmentsKey) as? [String: String] else {
+            return
+        }
+
+        let retainedAssignments = saved.filter { !paintingIDs.contains($0.value) }
+        if retainedAssignments != saved {
+            defaults.set(retainedAssignments, forKey: assignmentsKey)
+        }
     }
 
     func addPaintings(_ paintings: [Painting]) {
@@ -69,18 +154,33 @@ final class PaintingStore: ObservableObject {
     }
 
     private func saveCachedCatalog() {
-        let cacheURL = Self.cacheDirectory.appendingPathComponent("cached_catalog.json")
         // Save only non-bundled paintings
         let bundledIDs = loadBundledIDs()
         let cachedPaintings = catalog.filter { !bundledIDs.contains($0.id) }
-        let cacheCatalog = PaintingCatalog(version: 1, paintings: cachedPaintings)
-        if let data = try? JSONEncoder().encode(cacheCatalog) {
-            try? data.write(to: cacheURL)
+        writeCachedCatalog(cachedPaintings)
+    }
+
+    private func writeCachedCatalog(_ paintings: [Painting]) {
+        let cacheCatalog = PaintingCatalog(
+            version: Self.cachedCatalogVersion,
+            paintings: paintings
+        )
+
+        do {
+            try fileManager.createDirectory(at: cacheDirectory, withIntermediateDirectories: true)
+            let data = try JSONEncoder().encode(cacheCatalog)
+            try data.write(to: cachedCatalogURL, options: .atomic)
+        } catch {
+            NSLog("[EaselWall] Failed to save cached catalog: \(error)")
         }
     }
 
     private func loadBundledIDs() -> Set<String> {
-        guard let url = Bundle.main.url(forResource: "catalog", withExtension: "json", subdirectory: "Paintings"),
+        guard let url = resourceBundle.url(
+            forResource: "catalog",
+            withExtension: "json",
+            subdirectory: "Paintings"
+        ),
               let data = try? Data(contentsOf: url),
               let decoded = try? JSONDecoder().decode(PaintingCatalog.self, from: data) else {
             return []
@@ -128,11 +228,11 @@ final class PaintingStore: ObservableObject {
         let flat = serializable.reduce(into: [String: String]()) { result, dict in
             result.merge(dict) { _, new in new }
         }
-        UserDefaults.standard.set(flat, forKey: assignmentsKey)
+        defaults.set(flat, forKey: assignmentsKey)
     }
 
     private func restoreAssignments() {
-        guard let saved = UserDefaults.standard.dictionary(forKey: assignmentsKey) as? [String: String] else {
+        guard let saved = defaults.dictionary(forKey: assignmentsKey) as? [String: String] else {
             return
         }
         let paintingsByID = Dictionary(uniqueKeysWithValues: catalog.map { ($0.id, $0) })
@@ -159,15 +259,17 @@ final class PaintingStore: ObservableObject {
     func loadImage(for painting: Painting) -> NSImage? {
         // Try bundled image first
         if let filename = painting.localFilename,
-           let url = Bundle.main.url(forResource: filename, withExtension: nil, subdirectory: "Paintings"),
+           let url = resourceBundle.url(
+               forResource: filename,
+               withExtension: nil,
+               subdirectory: "Paintings"
+           ),
            let image = NSImage(contentsOf: url) {
             return image
         }
 
         // Try cached image
-        let cachedURL = Self.cacheDirectory
-            .appendingPathComponent("images")
-            .appendingPathComponent(painting.id + ".jpg")
+        guard let cachedURL = cachedImageURL(for: painting.id) else { return nil }
         if let image = NSImage(contentsOf: cachedURL) {
             return image
         }
@@ -176,18 +278,39 @@ final class PaintingStore: ObservableObject {
     }
 
     func cacheImage(_ data: Data, for painting: Painting) {
-        let imagesDir = Self.cacheDirectory.appendingPathComponent("images")
-        try? FileManager.default.createDirectory(at: imagesDir, withIntermediateDirectories: true)
-        let url = imagesDir.appendingPathComponent(painting.id + ".jpg")
-        try? data.write(to: url)
+        guard let url = cachedImageURL(for: painting.id) else { return }
+        do {
+            try fileManager.createDirectory(at: imagesDirectory, withIntermediateDirectories: true)
+            try data.write(to: url, options: .atomic)
+        } catch {
+            NSLog("[EaselWall] Failed to cache image: \(error)")
+        }
     }
 
     // MARK: - Paths
 
-    static var cacheDirectory: URL {
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+    private var cachedCatalogURL: URL {
+        cacheDirectory.appendingPathComponent("cached_catalog.json")
+    }
+
+    private var imagesDirectory: URL {
+        cacheDirectory.appendingPathComponent("images", isDirectory: true)
+    }
+
+    private func cachedImageURL(for paintingID: String) -> URL? {
+        guard !paintingID.isEmpty,
+              !paintingID.contains("/"),
+              paintingID != ".",
+              paintingID != ".." else {
+            return nil
+        }
+        return imagesDirectory.appendingPathComponent(paintingID + ".jpg")
+    }
+
+    private static func defaultCacheDirectory(fileManager: FileManager) -> URL {
+        let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
         let dir = appSupport.appendingPathComponent("EaselWall", isDirectory: true)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try? fileManager.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }
 }

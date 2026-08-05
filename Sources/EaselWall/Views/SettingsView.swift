@@ -69,7 +69,7 @@ struct SettingsView: View {
                     case .displays:
                         DisplayPane(settings: settings)
                     case .gallery:
-                        GalleryPane(settings: settings, paintingStore: paintingStore)
+                        GalleryPane(paintingStore: paintingStore)
                     case .general:
                         GeneralPane(settings: settings)
                     case .about:
@@ -206,7 +206,6 @@ private struct DisplayPane: View {
 // MARK: - Gallery
 
 private struct GalleryPane: View {
-    @ObservedObject var settings: AppSettings
     @ObservedObject var paintingStore: PaintingStore
     @State private var isFetching = false
     @State private var fetchResult: String?
@@ -236,31 +235,25 @@ private struct GalleryPane: View {
             Text("Additional Collections")
                 .font(.headline)
 
-            SecureField("API Key", text: $settings.rijksmuseumAPIKey)
-                .textFieldStyle(.roundedBorder)
-                .frame(maxWidth: 280)
+            HStack {
+                Button("Fetch Paintings") {
+                    fetchRijksmuseum()
+                }
+                .disabled(isFetching)
 
-            if settings.hasRijksmuseumKey {
-                HStack {
-                    Button("Fetch Paintings") {
-                        fetchRijksmuseum()
-                    }
-                    .disabled(isFetching)
+                if isFetching {
+                    ProgressView()
+                        .controlSize(.small)
+                }
 
-                    if isFetching {
-                        ProgressView()
-                            .controlSize(.small)
-                    }
-
-                    if let result = fetchResult {
-                        Text(result)
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
-                    }
+                if let result = fetchResult {
+                    Text(result)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
                 }
             }
 
-            Text("Expand the collection with Dutch masters. Get a free API key at data.europa.eu.")
+            Text("No API key required. Fetch public-domain Van Gogh paintings from the Rijksmuseum Collection.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
         }
@@ -275,7 +268,6 @@ private struct GalleryPane: View {
             do {
                 let paintings = try await client.fetchRijksmuseumPaintings(
                     query: "van gogh",
-                    apiKey: settings.rijksmuseumAPIKey,
                     limit: 30
                 )
                 await MainActor.run {
@@ -286,8 +278,9 @@ private struct GalleryPane: View {
                     isFetching = false
                 }
             } catch {
+                NSLog("[EaselWall] Rijksmuseum fetch failed: \(error)")
                 await MainActor.run {
-                    fetchResult = "Error: \(error.localizedDescription)"
+                    fetchResult = String(localized: "Couldn’t load Rijksmuseum paintings. Try again later.")
                     isFetching = false
                 }
             }
@@ -358,7 +351,7 @@ private struct AboutPane: View {
                     .frame(width: 240)
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Artwork images in the public domain, sourced under CC0 from:")
+                    Text("Artwork images marked CC0 or Public Domain Mark by their source:")
                         .font(.callout)
                         .foregroundStyle(.secondary)
 
@@ -377,7 +370,7 @@ private struct AboutPane: View {
                         .font(.caption)
                         .foregroundStyle(.tertiary)
 
-                    Text("Rijksmuseum collection images obtained via the Rijksmuseum API.")
+                    Text("developed using the Rijksmuseum API")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 }

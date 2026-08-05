@@ -12,8 +12,8 @@ A native macOS menu bar app that sets your desktop wallpaper to a different impr
 - Museum-style mats (cream, configurable color/spacing, optional toggle)
 - Orientation-aware: landscape paintings → landscape monitors, portrait → portrait
 - Unique painting per display option
-- Pseudo-random rotation — no repeats until full cycle completes
-- Midnight swap with launchd agent (survives sleep/reboot/app termination)
+- Pseudo-random rotation — no repeats within each display orientation pool until that cycle completes
+- Midnight swap with in-process scheduling; direct-download/Homebrew builds also install a launchd agent
 - Control Center widget (macOS 26+ Tahoe)
 - Launch at login (SMAppService)
 - Pre-fetches next week's paintings in background
@@ -23,7 +23,7 @@ A native macOS menu bar app that sets your desktop wallpaper to a different impr
 
 - **Homebrew cask** — free, `brew install ntindle/easelwall/easelwall`
 - **DMG download** — free, from GitHub Releases + easelwall.com
-- **Mac App Store** — $3 (pending Apple Developer enrollment)
+- **Mac App Store** — $2.99
 - **License:** BSL 1.1, converts to Apache 2.0 on 2030-04-13
 
 ## Architecture
@@ -39,14 +39,14 @@ A native macOS menu bar app that sets your desktop wallpaper to a different impr
 
 ## Image Sourcing & Legal
 
-All artists died 100+ years ago — public domain worldwide. *Bridgeman v. Corel* (1999) confirms faithful photo reproductions of 2D public domain works aren't copyrightable.
+The bundled catalogue features artists who died at least 100 years ago. Remote artwork is accepted only when its source record carries CC0 1.0 or Public Domain Mark 1.0. Copyright status can vary by jurisdiction, so rely on each source record's rights statement rather than a blanket worldwide claim.
 
-### Sources (all CC0)
+### Sources (CC0 / Public Domain Mark records)
 | Museum | Notes |
 |---|---|
 | Art Institute of Chicago | IIIF API, no key needed. Add `AIC-User-Agent` header. |
 | The Metropolitan Museum of Art | CDN URLs, no key needed. Include www.metmuseum.org in citations. |
-| Rijksmuseum | Requires free API key. Must credit as "Rijksmuseum Collection" per image. Must not use "Rijksmuseum" in app branding (settings UI uses "Additional Collections"). |
+| Rijksmuseum | Keyless Search, framed EDM, and IIIF APIs. Accept only CC0/PDM records. Credit as "Rijksmuseum Collection" per image. Must not use "Rijksmuseum" in app branding (settings UI uses "Additional Collections"). |
 
 ### Avoid
 - Google Arts & Culture (restrictive ToS)
@@ -82,9 +82,7 @@ docs/                 — App Store review notes
 - Boy Scout Rule — commit formatting/lint fixes even in untouched files
 - xcodeproj is gitignored — regenerate with `xcodegen generate` or `make generate-project`
 
-## Pending (blocked on Apple Developer enrollment)
+## Release channels
 
-- Code signing (Developer ID Application cert)
-- Notarization (removes Gatekeeper "unidentified developer" warning)
-- Mac App Store submission ($3)
-- GitHub Actions secrets (P12, Apple ID, team ID, app-specific password)
+- Tag-triggered GitHub Actions build, sign, notarize, and publish the direct DMG and Homebrew update.
+- The same release tag uploads a sandboxed build to App Store Connect; submission for review remains an explicit App Store Connect action.
