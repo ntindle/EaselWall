@@ -57,12 +57,16 @@ class ReleaseWorkflowRegressionTests(unittest.TestCase):
         self.assertLess(guard, github_release)
         self.assertLess(guard, homebrew)
         self.assertLess(guard, appcast)
-        self.assertIn("git fetch --prune --prune-tags --tags origin", self.source)
-        self.assertIn("git ls-remote --exit-code origin", self.source)
-        self.assertIn('DIRECT_REF="refs/tags/$TAG"', self.source)
+        self.assertIn("git fetch --prune --no-tags origin", self.source)
+        self.assertIn("+refs/tags/*:refs/remotes/origin-tags/*", self.source)
+        self.assertIn('REMOTE_TAG_REF="refs/remotes/origin-tags/$TAG"', self.source)
         self.assertIn('REMOTE_TAG_COMMIT" != "$CHECKED_OUT_COMMIT', self.source)
-        self.assertIn("git tag --list 'v*' --sort=-version:refname", self.source)
+        self.assertIn("git for-each-ref --sort=-version:refname", self.source)
         self.assertIn('LATEST_TAG" != "$TAG', self.source)
+
+    def test_tag_fetch_never_targets_local_tag_namespace(self):
+        self.assertNotIn(":refs/tags/", self.source)
+        self.assertNotIn("--prune-tags", self.source)
 
     def test_mutable_channels_parse_fail_closed_and_reject_regressions(self):
         self.assertIn("single_cask_version()", self.source)
@@ -199,10 +203,10 @@ class AppStoreWorkflowRegressionTests(unittest.TestCase):
     def test_manual_dispatch_resolves_a_tag_instead_of_branch_name(self):
         self.assertIn("fetch-depth: 0", self.source)
         self.assertIn('GITHUB_REF_TYPE" == "tag', self.source)
-        self.assertIn("git tag --list 'v[0-9]*' --sort=-version:refname", self.source)
-        self.assertIn('git checkout --detach "refs/tags/$TAG"', self.source)
+        self.assertIn("git for-each-ref --sort=-version:refname", self.source)
+        self.assertIn('git checkout --detach "$REMOTE_TAG_COMMIT"', self.source)
+        self.assertIn('REMOTE_TAG_REF="refs/remotes/origin-tags/$TAG"', self.source)
         self.assertIn('git rev-parse HEAD', self.source)
-        self.assertIn('git rev-list -n 1 "$TAG"', self.source)
         self.assertNotIn('VERSION=${GITHUB_REF_NAME#v}', self.source)
 
     def test_app_store_build_number_matches_retry_safe_compact_format(self):
@@ -224,11 +228,84 @@ class AppStoreWorkflowRegressionTests(unittest.TestCase):
         guard = self.source.index("Verify tag is latest release before upload")
         upload = self.source.index("Upload to App Store Connect")
         self.assertLess(guard, upload)
-        self.assertIn("git fetch --prune --prune-tags --tags origin", self.source)
-        self.assertIn("git ls-remote --exit-code origin", self.source)
+        self.assertIn("git fetch --prune --no-tags origin", self.source)
+        self.assertIn("+refs/tags/*:refs/remotes/origin-tags/*", self.source)
         self.assertIn('REMOTE_TAG_COMMIT" != "$CHECKED_OUT_COMMIT', self.source)
-        self.assertIn("git tag --list 'v*' --sort=-version:refname", self.source)
+        self.assertIn("git for-each-ref --sort=-version:refname", self.source)
         self.assertIn('LATEST_TAG" != "$TAG', self.source)
+
+    def test_annotated_tag_fetch_does_not_clobber_checkout_tag(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            remote = root / "remote.git"
+            producer = root / "producer"
+            consumer = root / "consumer"
+
+            subprocess.run(["git", "init", "--bare", str(remote)], check=True, capture_output=True)
+            subprocess.run(["git", "init", str(producer)], check=True, capture_output=True)
+            subprocess.run(["git", "-C", str(producer), "config", "user.name", "test"], check=True)
+            subprocess.run(["git", "-C", str(producer), "config", "user.email", "test@example.com"], check=True)
+            (producer / "file").write_text("release\n")
+            subprocess.run(["git", "-C", str(producer), "add", "file"], check=True)
+            subprocess.run(["git", "-C", str(producer), "-c", "commit.gpgsign=false", "commit", "-m", "release"], check=True, capture_output=True)
+            subprocess.run(["git", "-C", str(producer), "-c", "tag.gpgSign=false", "tag", "-a", "v1.0.2", "-m", "release"], check=True)
+            subprocess.run(["git", "-C", str(producer), "remote", "add", "origin", str(remote)], check=True)
+            subprocess.run(["git", "-C", str(producer), "push", "origin", "HEAD:main", "refs/tags/v1.0.2"], check=True, capture_output=True)
+
+            subprocess.run(["git", "init", str(consumer)], check=True, capture_output=True)
+            subprocess.run(["git", "-C", str(consumer), "remote", "add", "origin", str(remote)], check=True)
+            subprocess.run(["git", "-C", str(consumer), "fetch", "--no-tags", "origin", "main"], check=True, capture_output=True)
+            subprocess.run(["git", "-C", str(consumer), "checkout", "--detach", "FETCH_HEAD"], check=True, capture_output=True)
+            commit = subprocess.check_output(["git", "-C", str(consumer), "rev-parse", "HEAD"], text=True).strip()
+            # Reproduce actions/checkout: the annotated local tag name points
+            # directly at the peeled commit rather than the remote tag object.
+            subprocess.run(["git", "-C", str(consumer), "update-ref", "refs/tags/v1.0.2", commit], check=True)
+
+            result = subprocess.run(
+                ["git", "-C", str(consumer), "fetch", "--prune", "--no-tags", "origin", "+refs/tags/*:refs/remotes/origin-tags/*"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
+            remote_commit = subprocess.check_output(
+                ["git", "-C", str(consumer), "rev-parse", "refs/remotes/origin-tags/v1.0.2^{commit}"],
+                text=True,
+            ).strip()
+            self.assertEqual(remote_commit, commit)
+            self.assertEqual(
+                subprocess.check_output(["git", "-C", str(consumer), "rev-parse", "refs/tags/v1.0.2"], text=True).strip(),
+                commit,
+            )
+
+            # The isolated namespace must also be pruned from current remote
+            # state. Otherwise a deleted release tag could remain eligible as
+            # the apparent latest version in a long-lived/manual runner.
+            subprocess.run(
+                ["git", "-C", str(producer), "push", "origin", ":refs/tags/v1.0.2"],
+                check=True,
+                capture_output=True,
+            )
+            prune = subprocess.run(
+                ["git", "-C", str(consumer), "fetch", "--prune", "--no-tags", "origin", "+refs/tags/*:refs/remotes/origin-tags/*"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(prune.returncode, 0, prune.stderr)
+            self.assertNotEqual(
+                subprocess.run(
+                    ["git", "-C", str(consumer), "show-ref", "--verify", "refs/remotes/origin-tags/v1.0.2"],
+                    capture_output=True,
+                    check=False,
+                ).returncode,
+                0,
+            )
+            # The checkout-created local tag remains untouched throughout.
+            self.assertEqual(
+                subprocess.check_output(["git", "-C", str(consumer), "rev-parse", "refs/tags/v1.0.2"], text=True).strip(),
+                commit,
+            )
 
     def test_signing_material_is_private_and_removed(self):
         self.assertGreaterEqual(self.source.count("umask 077"), 2)
