@@ -1,4 +1,4 @@
-.PHONY: build release dmg sign notarize sha256 clean generate-project generate-appstore-project validate-release-version archive export-appstore upload-appstore screenshots screenshots-clean appstore-marketing-screenshots app-store-report-status app-store-report-bootstrap app-store-report-snapshot app-store-report-fetch app-store-report marketing-videos marketing-video
+.PHONY: build release dmg sign notarize sha256 clean generate-project generate-appstore-project validate-release-version archive export-appstore upload-appstore screenshots screenshots-clean appstore-marketing-screenshots appstore-real-screenshots appstore-real-screenshots-compose app-store-report-status app-store-report-bootstrap app-store-report-snapshot app-store-report-fetch app-store-report marketing-videos marketing-video
 
 APP_NAME = EaselWall
 BUNDLE_ID = com.ntindle.EaselWall
@@ -160,6 +160,15 @@ screenshots-clean:
 # Render the five deterministic, privacy-safe 1280x800 upload assets.
 appstore-marketing-screenshots:
 	@python3 scripts/render_app_store_screenshots.py
+
+# Capture native UI and MatRenderer output with a non-shipping build config,
+# then compose the five real 1280x800 RGB upload candidates.
+appstore-real-screenshots:
+	@./scripts/capture_app_store_screenshots.sh
+
+# Recompose previously captured native sources without launching the app.
+appstore-real-screenshots-compose:
+	@./scripts/capture_app_store_screenshots.sh --compose-only
 
 # --- App Store proceeds reporting ---
 # Credentials are inherited from the caller's environment. `report` itself is

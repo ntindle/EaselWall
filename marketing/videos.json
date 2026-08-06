@@ -1,6 +1,13 @@
 {
-  "version": 1,
+  "version": 2,
   "defaultCta": "EaselWall for Mac · $2.99 once",
+  "defaultDestinationCta": "SEARCH EASELWALL ON THE MAC APP STORE",
+  "profileLink": "https://easelwall.com/tiktok/",
+  "hashtagSets": [
+    "#MacApps #MacSetup #Wallpaper",
+    "#DeskSetup #MacTips #DigitalArt",
+    "#macOS #DesktopSetup #Impressionism"
+  ],
   "videos": [
     {
       "id": "museum-morning",
@@ -101,7 +108,7 @@
         ["website/assets/screen-landscape-1.png"],
         ["website/assets/screen-portrait.png"]
       ],
-      "caption": "EaselWall turns a different public-domain masterpiece into a properly composed Mac wallpaper every day."
+      "caption": "With Museum Mat enabled, EaselWall turns a different public-domain masterpiece into a composed Mac wallpaper every day."
     }
   ]
 }

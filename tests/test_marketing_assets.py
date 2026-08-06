@@ -11,6 +11,8 @@ REDIRECTS = ROOT / "website" / "_redirects"
 PRIVACY = ROOT / "website" / "privacy.html"
 README = ROOT / "README.md"
 SUPPORT = ROOT / "website" / "support.html"
+PROJECT = ROOT / "project.yml"
+TIKTOK = ROOT / "website" / "tiktok" / "index.html"
 
 
 class WebsiteAttributionTests(unittest.TestCase):
@@ -22,6 +24,7 @@ class WebsiteAttributionTests(unittest.TestCase):
         cls.readme = README.read_text(encoding="utf-8")
         cls.support = SUPPORT.read_text(encoding="utf-8")
         cls.app_store_metadata = APP_STORE_METADATA.read_text(encoding="utf-8")
+        cls.tiktok = TIKTOK.read_text(encoding="utf-8")
         match = re.search(
             r'<script type="application/ld\+json">\s*(.*?)\s*</script>',
             cls.index,
@@ -40,16 +43,54 @@ class WebsiteAttributionTests(unittest.TestCase):
             "https://easelwall.com/app-store",
         )
 
-    def test_redirects_preserve_website_and_tiktok_campaign_tokens(self):
+    def test_structured_version_matches_the_project_marketing_version(self):
+        project = PROJECT.read_text(encoding="utf-8")
+        match = re.search(r'MARKETING_VERSION:\s*"([^"]+)"', project)
+        self.assertIsNotNone(match)
+        self.assertEqual(self.structured_data["softwareVersion"], match.group(1))
+
+    def test_website_redirect_preserves_its_campaign_token(self):
         self.assertIn(
             "/app-store https://apps.apple.com/app/apple-store/id6778701883?"
             "pt=122660259&ct=web_site&mt=8 302",
             self.redirects,
         )
+
+    def test_tiktok_route_is_a_mobile_handoff_not_a_device_blind_redirect(self):
+        self.assertNotIn("/tiktok ", self.redirects)
+        self.assertIn("EaselWall works on Mac", self.tiktok)
+        self.assertIn("Send this page to your Mac", self.tiktok)
+        self.assertIn("navigator.share", self.tiktok)
+        self.assertIn("navigator.clipboard.writeText", self.tiktok)
+
+    def test_tiktok_mac_cta_preserves_organic_campaign_attribution(self):
         self.assertIn(
-            "/tiktok https://apps.apple.com/app/apple-store/id6778701883?"
-            "pt=122660259&ct=tt_organic&mt=8 302",
-            self.redirects,
+            "https://apps.apple.com/app/apple-store/id6778701883?"
+            "pt=122660259&amp;ct=tt_organic&amp;mt=8",
+            self.tiktok,
+        )
+
+    def test_tiktok_handoff_collects_no_contact_or_tracking_data(self):
+        lowered = self.tiktok.casefold()
+        self.assertNotIn("<form", lowered)
+        self.assertNotIn("google-analytics", lowered)
+        self.assertNotIn("gtag(", lowered)
+        self.assertNotIn("mailto:", lowered)
+        self.assertIn("code asks for no personal information", lowered)
+        self.assertIn("host receives standard request metadata", lowered)
+
+    def test_tiktok_handoff_prioritizes_phone_actions_until_mac_is_detected(self):
+        self.assertLess(
+            self.tiktok.index('class="card phone-card"'),
+            self.tiktok.index('class="card mac-card"'),
+        )
+        self.assertIn(".is-mac .mac-card", self.tiktok)
+        self.assertIn("order: -1", self.tiktok)
+        self.assertIn("navigator.maxTouchPoints <= 1", self.tiktok)
+
+    def test_paid_app_store_is_the_default_install_step(self):
+        self.assertIn(
+            "Get EaselWall from the Mac App Store for $2.99 once.", self.index
         )
 
     def test_paid_store_cta_is_primary_and_source_build_is_subordinate(self):

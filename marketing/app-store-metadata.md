@@ -7,10 +7,10 @@ claim synchronized with the shipping App Store build.
 
 | Field | Copy | Limit |
 | --- | --- | ---: |
-| Name | `EaselWall` | 9 / 30 characters |
-| Subtitle | `Daily Impressionist Art` | 23 / 30 characters |
-| Promotional text | `Turn your Mac into a quiet daily exhibition: a new Impressionist painting, thoughtfully matted for each display—no account, ads, or tracking.` | 141 / 170 characters |
-| Keywords | `wallpaper,desktop,painting,museum,landscape,portrait,menubar,background,curated,masterpiece,matting` | 99 / 100 UTF-8 bytes |
+| Name | `EaselWall: Art Wallpapers` | 25 / 30 characters |
+| Subtitle | `Museum paintings every day` | 26 / 30 characters |
+| Promotional text | `Turn every display into a tiny museum: 53 public-domain masterpieces, daily rotation, custom mats, and no accounts, ads, or subscriptions.` | 138 / 170 characters |
+| Keywords | `desktop,background,monet,van gogh,mat,gallery,classic,automatic,multi monitor,impressionist,rotation` | 100 / 100 UTF-8 bytes |
 
 ## Description
 
@@ -59,23 +59,25 @@ Additional Collections no longer needs a Rijksmuseum API key. EaselWall now uses
 Do not repeat the app name or subtitle terms in Keywords. Do not call every
 source image CC0: EaselWall also accepts Public Domain Mark 1.0 records.
 
-## Screenshot upload order
+## Real screenshot candidate order
 
-The generated `screenshots/for-upload/manifest.json` owns the exact set and
+The generated `screenshots/real/for-upload/manifest.json` owns the exact set and
 hashes. Upload in this order:
 
-1. `01-daily-masterpiece.png`
+1. `01-customize-mats.png`
 2. `02-every-display.png`
-3. `03-custom-museum-mats.png`
-4. `04-fifty-three-works.png`
-5. `05-simple-by-design.png`
+3. `03-curated-gallery.png`
+4. `04-daily-schedule.png`
+5. `05-current-painting.png`
 
-Apple requires screenshots to show the app in use. Explanatory text and
-overlays are allowed, but each final composite must visibly use genuine
-EaselWall output or UI. Slides 3&ndash;5 include reviewed Settings captures for
-Appearance, Gallery Summary, and Schedule; the Gallery crop stops before
-Additional Collections so it cannot show the obsolete API-key UI. Review the
-complete five-image set before upload.
+Apple requires screenshots to show the app in use. Every final composite uses
+genuine EaselWall UI. Settings appear over wallpaper output written by the same
+native build; the menu uses its own paired render or a neutral privacy-safe
+backdrop, but only when `menu.png` has a matching native readiness record and
+exact capture hash. The conversion-critical first image shows Appearance over a
+rendered painting, followed by Displays, the keyless Gallery, and Schedule. The
+verified native menu capture is last. Review the complete five-image set before
+upload.
 
 Mac-only apps cannot currently use Custom Product Pages or Product Page
 Optimization; those features require an iOS or iPadOS app. Treat the first

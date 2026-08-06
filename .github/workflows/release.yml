@@ -34,6 +34,15 @@ jobs:
             echo "::error::Release tags must use canonical vMAJOR.MINOR.PATCH components from 0 to 999"
             exit 1
           fi
+          . scripts/release_metadata_guards.sh
+          if ! CANDIDATE_PROJECT_VERSION=$(single_project_version project.yml); then
+            echo "::error::Tagged project.yml must contain exactly one canonical MARKETING_VERSION"
+            exit 1
+          fi
+          if [[ "$CANDIDATE_PROJECT_VERSION" != "$VERSION" ]]; then
+            echo "::error::Tag v$VERSION contains project version $CANDIDATE_PROJECT_VERSION; refusing a mismatched build"
+            exit 1
+          fi
 
           # Compact, globally ordered identity: seconds since 2025, direct
           # channel 1, and Actions attempt. This stays within Apple's observed
@@ -60,11 +69,9 @@ jobs:
             echo "::error::CFBundleVersion must be 1-3 numeric components and at most 18 characters"
             exit 1
           fi
-          RELEASE_PUB_DATE=$(git show -s --format=%cD HEAD)
           {
             echo "VERSION=$VERSION"
             echo "BUILD_NUM=$BUILD_NUM"
-            echo "RELEASE_PUB_DATE=$RELEASE_PUB_DATE"
           } >> "$GITHUB_ENV"
           echo "Version: $VERSION, build $BUILD_NUM"
 
@@ -234,6 +241,7 @@ jobs:
       - name: Verify tag is latest release before publishing
         run: |
           git fetch --prune --no-tags origin \
+            '+refs/heads/main:refs/remotes/origin/main' \
             '+refs/tags/*:refs/remotes/origin-tags/*'
           TAG="v$VERSION"
           REMOTE_TAG_REF="refs/remotes/origin-tags/$TAG"
@@ -244,6 +252,11 @@ jobs:
           CHECKED_OUT_COMMIT=$(git rev-parse HEAD)
           if [[ "$REMOTE_TAG_COMMIT" != "$CHECKED_OUT_COMMIT" ]]; then
             echo "::error::Origin tag $TAG does not resolve to the checked-out commit"
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor \
+            "$CHECKED_OUT_COMMIT" refs/remotes/origin/main; then
+            echo "::error::Release tag $TAG is not contained in origin/main"
             exit 1
           fi
 
@@ -266,12 +279,165 @@ jobs:
             echo "::error::Refusing to publish v$VERSION because $LATEST_TAG is newer"
             exit 1
           fi
+
+          # BEGIN RELEASE TAG DATE HELPERS
+          release_tag_date() {
+            local ref="$1" format="$2" value
+            value=$(git for-each-ref --format="%(creatordate:$format)" "$ref")
+            if [[ -z "$value" ]]; then return 1; fi
+            printf '%s\n' "$value"
+          }
+          # END RELEASE TAG DATE HELPERS
+          if ! RELEASE_PUB_DATE=$(release_tag_date "$REMOTE_TAG_REF" rfc2822); then
+            echo "::error::Unable to resolve creator date for release tag $TAG"
+            exit 1
+          fi
+          if ! RELEASE_DATE=$(release_tag_date "$REMOTE_TAG_REF" short); then
+            echo "::error::Unable to resolve short creator date for release tag $TAG"
+            exit 1
+          fi
+          if [[ ! "$RELEASE_DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+            echo "::error::Release tag $TAG has an invalid creator date"
+            exit 1
+          fi
+          {
+            echo "RELEASE_PUB_DATE=$RELEASE_PUB_DATE"
+            echo "RELEASE_DATE=$RELEASE_DATE"
+          } >> "$GITHUB_ENV"
           echo "v$VERSION is the latest release tag"
+
+      # Preflight every mutable channel before publishing public bytes. The
+      # same parsers are sourced again immediately before each later mutation.
+      - name: Check out main for release metadata
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          path: appcast-repo
+
+      - name: Clone Homebrew tap for preflight
+        env:
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          git clone \
+            "https://x-access-token:${TAP_TOKEN}@github.com/ntindle/homebrew-easelwall.git" \
+            "$RUNNER_TEMP/homebrew-tap"
+
+      - name: Preflight mutable release channels
+        working-directory: appcast-repo
+        run: |
+          git pull --no-rebase origin main
+          . scripts/release_metadata_guards.sh
+
+          TAP_CASK="$RUNNER_TEMP/homebrew-tap/Casks/easelwall.rb"
+          REPOSITORY_CASK="Casks/easelwall.rb"
+          if ! TAP_VERSION=$(single_cask_version "$TAP_CASK"); then
+            echo "::error::Homebrew cask must contain exactly one canonical version declaration"
+            exit 1
+          fi
+          if ! TAP_SHA256=$(single_cask_sha256 "$TAP_CASK"); then
+            echo "::error::Homebrew cask must contain exactly one canonical sha256 declaration"
+            exit 1
+          fi
+          if ! REPOSITORY_CASK_VERSION=$(single_cask_version "$REPOSITORY_CASK"); then
+            echo "::error::Repository cask must contain exactly one canonical version declaration"
+            exit 1
+          fi
+          if ! REPOSITORY_CASK_SHA256=$(single_cask_sha256 "$REPOSITORY_CASK"); then
+            echo "::error::Repository cask must contain exactly one canonical sha256 declaration"
+            exit 1
+          fi
+          if ! APPCAST_VERSION=$(single_appcast_value version website/appcast.xml); then
+            echo "::error::Appcast must contain exactly one valid short version"
+            exit 1
+          fi
+          if ! APPCAST_BUILD=$(single_appcast_value build website/appcast.xml); then
+            echo "::error::Appcast must contain exactly one numeric sparkle build"
+            exit 1
+          fi
+          if ! PROJECT_VERSION=$(single_project_version project.yml); then
+            echo "::error::project.yml must contain exactly one canonical MARKETING_VERSION"
+            exit 1
+          fi
+          if ! STRUCTURED_VERSION=$(single_structured_version website/index.html); then
+            echo "::error::Website structured data must contain exactly one canonical softwareVersion"
+            exit 1
+          fi
+          if ! HOMEPAGE_LASTMOD=$(single_homepage_lastmod website/sitemap.xml); then
+            echo "::error::Sitemap must contain exactly one canonical homepage lastmod"
+            exit 1
+          fi
+
+          if [[ "$PROJECT_VERSION" != "$VERSION" ]]; then
+            echo "::error::Main project version $PROJECT_VERSION does not match release candidate $VERSION"
+            exit 1
+          fi
+          if ! PUBLISHED_VERSION=$(single_current_published_version \
+            "$VERSION" "$TAP_VERSION" "$REPOSITORY_CASK_VERSION" \
+            "$APPCAST_VERSION" "$STRUCTURED_VERSION"); then
+            echo "::error::Homebrew, repository cask, appcast, and website versions disagree or exceed candidate $VERSION"
+            exit 1
+          fi
+          if [[ "$TAP_SHA256" != "$REPOSITORY_CASK_SHA256" ]]; then
+            echo "::error::Repository cask checksum does not match the public Homebrew tap"
+            exit 1
+          fi
+          if [[ "$TAP_VERSION" == "$VERSION" && "$TAP_SHA256" != "$SHA256" ]]; then
+            echo "::error::Version $VERSION is already published with a different checksum; refusing public asset replacement"
+            exit 1
+          fi
+          if build_greater_or_equal "$APPCAST_BUILD" "$BUILD_NUM"; then
+            echo "::error::Appcast build $APPCAST_BUILD is newer than or equal to candidate $BUILD_NUM"
+            exit 1
+          fi
+          echo "Preflight passed: candidate $PROJECT_VERSION; current channels publish $PUBLISHED_VERSION (build $APPCAST_BUILD; homepage $HOMEPAGE_LASTMOD)"
+
+      - name: Refuse unsafe release asset overwrite
+        uses: actions/github-script@v7
+        env:
+          RELEASE_ASSET_NAME: ${{ env.APP_NAME }}-${{ env.VERSION }}.dmg
+        with:
+          script: |
+            let release
+            try {
+              const response = await github.rest.repos.getReleaseByTag({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag: `v${process.env.VERSION}`,
+              })
+              release = response.data
+            } catch (error) {
+              if (error.status === 404) {
+                core.info('No existing GitHub release; first publication may proceed')
+                return
+              }
+              throw error
+            }
+            const assets = await github.paginate(github.rest.repos.listReleaseAssets, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              release_id: release.id,
+              per_page: 100,
+            })
+            const existing = assets.find(
+              (asset) => asset.name === process.env.RELEASE_ASSET_NAME,
+            )
+            if (existing) {
+              throw new Error(
+                `Public asset ${existing.name} already exists for v${process.env.VERSION}. ` +
+                'This workflow will not replace bytes while Homebrew or Sparkle may still ' +
+                'reference them. Recover the remaining metadata from the existing asset, ' +
+                'or publish a new version tag.',
+              )
+            }
+            core.info('Existing release has no same-name asset; first asset publication may proceed')
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: build/${{ env.APP_NAME }}-${{ env.VERSION }}.dmg
+          overwrite_files: false
+          fail_on_unmatched_files: true
           generate_release_notes: true
           body: |
             ## Install
@@ -286,44 +452,12 @@ jobs:
             **SHA256:** `${{ env.SHA256 }}`
 
       - name: Update Homebrew tap
-        env:
-          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
-          git clone "https://x-access-token:${TAP_TOKEN}@github.com/ntindle/homebrew-easelwall.git" /tmp/tap
-          cd /tmp/tap
-          # BEGIN HOMEBREW VERSION HELPERS
-          single_cask_version() {
-            local file="$1" declarations values
-            declarations=$(awk '/^[[:space:]]*version[[:space:]]+/ { count++ } END { print count + 0 }' "$file")
-            if (( declarations != 1 )); then return 1; fi
-            values=$(sed -nE 's/^[[:space:]]*version "([0-9]+\.[0-9]+\.[0-9]+)"[[:space:]]*$/\1/p' "$file")
-            if [[ ! "$values" =~ ^(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})$ ]]; then
-              return 1
-            fi
-            printf '%s\n' "$values"
-          }
-          single_cask_sha256() {
-            local file="$1" declarations values
-            declarations=$(awk '/^[[:space:]]*sha256[[:space:]]+/ { count++ } END { print count + 0 }' "$file")
-            if (( declarations != 1 )); then return 1; fi
-            values=$(sed -nE 's/^[[:space:]]*sha256 "([0-9A-Fa-f]{64})"[[:space:]]*$/\1/p' "$file")
-            if [[ ! "$values" =~ ^[0-9A-Fa-f]{64}$ ]]; then return 1; fi
-            printf '%s\n' "$values"
-          }
-          version_greater_than() {
-            local left_part right_part index
-            local -a left_parts right_parts
-            IFS=. read -r -a left_parts <<< "$1"
-            IFS=. read -r -a right_parts <<< "$2"
-            for index in 0 1 2; do
-              left_part=${left_parts[$index]}
-              right_part=${right_parts[$index]}
-              if (( 10#$left_part > 10#$right_part )); then return 0; fi
-              if (( 10#$left_part < 10#$right_part )); then return 1; fi
-            done
-            return 1
-          }
-          # END HOMEBREW VERSION HELPERS
+          METADATA_ROOT="$GITHUB_WORKSPACE/appcast-repo"
+          git -C "$METADATA_ROOT" pull --no-rebase origin main
+          . "$METADATA_ROOT/scripts/release_metadata_guards.sh"
+          cd "$RUNNER_TEMP/homebrew-tap"
+          git pull --no-rebase origin main
           if ! CURRENT_VERSION=$(single_cask_version Casks/easelwall.rb); then
             echo "::error::Homebrew cask must contain exactly one canonical version declaration"
             exit 1
@@ -332,9 +466,55 @@ jobs:
             echo "::error::Homebrew cask must contain exactly one canonical sha256 declaration"
             exit 1
           fi
+          if ! CURRENT_REPOSITORY_CASK_VERSION=$(single_cask_version "$METADATA_ROOT/Casks/easelwall.rb"); then
+            echo "::error::Repository cask must contain exactly one canonical version declaration"
+            exit 1
+          fi
+          if ! CURRENT_REPOSITORY_CASK_SHA256=$(single_cask_sha256 "$METADATA_ROOT/Casks/easelwall.rb"); then
+            echo "::error::Repository cask must contain exactly one canonical sha256 declaration"
+            exit 1
+          fi
+          if ! CURRENT_APPCAST_VERSION=$(single_appcast_value version "$METADATA_ROOT/website/appcast.xml"); then
+            echo "::error::Appcast must contain exactly one valid short version"
+            exit 1
+          fi
+          if ! CURRENT_APPCAST_BUILD=$(single_appcast_value build "$METADATA_ROOT/website/appcast.xml"); then
+            echo "::error::Appcast must contain exactly one numeric sparkle build"
+            exit 1
+          fi
+          if ! CURRENT_PROJECT_VERSION=$(single_project_version "$METADATA_ROOT/project.yml"); then
+            echo "::error::project.yml must contain exactly one canonical MARKETING_VERSION"
+            exit 1
+          fi
+          if ! CURRENT_STRUCTURED_VERSION=$(single_structured_version "$METADATA_ROOT/website/index.html"); then
+            echo "::error::Website structured data must contain exactly one canonical softwareVersion"
+            exit 1
+          fi
+          if ! single_homepage_lastmod "$METADATA_ROOT/website/sitemap.xml" >/dev/null; then
+            echo "::error::Sitemap must contain exactly one canonical homepage lastmod"
+            exit 1
+          fi
           echo "Current Homebrew cask: $CURRENT_VERSION ($CURRENT_SHA256)"
-          if version_greater_than "$CURRENT_VERSION" "$VERSION"; then
-            echo "::error::Homebrew already publishes newer version $CURRENT_VERSION; refusing v$VERSION"
+          if [[ "$CURRENT_PROJECT_VERSION" != "$VERSION" ]]; then
+            echo "::error::Main project version $CURRENT_PROJECT_VERSION does not match release candidate $VERSION"
+            exit 1
+          fi
+          if ! single_current_published_version \
+            "$VERSION" "$CURRENT_VERSION" "$CURRENT_REPOSITORY_CASK_VERSION" \
+            "$CURRENT_APPCAST_VERSION" "$CURRENT_STRUCTURED_VERSION" >/dev/null; then
+            echo "::error::Mutable channels changed after preflight; refusing Homebrew mutation"
+            exit 1
+          fi
+          if [[ "$CURRENT_SHA256" != "$CURRENT_REPOSITORY_CASK_SHA256" ]]; then
+            echo "::error::Repository cask checksum no longer matches the public Homebrew tap"
+            exit 1
+          fi
+          if build_greater_or_equal "$CURRENT_APPCAST_BUILD" "$BUILD_NUM"; then
+            echo "::error::Appcast build $CURRENT_APPCAST_BUILD is newer than or equal to candidate $BUILD_NUM"
+            exit 1
+          fi
+          if [[ "$CURRENT_VERSION" == "$VERSION" && "$CURRENT_SHA256" != "$SHA256" ]]; then
+            echo "::error::Homebrew already publishes $VERSION with a different checksum; refusing replacement"
             exit 1
           fi
           sed -i '' -E "s/^([[:space:]]*)version \"[0-9]+\.[0-9]+\.[0-9]+\"[[:space:]]*$/\\1version \"$VERSION\"/" Casks/easelwall.rb
@@ -349,15 +529,6 @@ jobs:
           git commit -m "Update EaselWall to $VERSION"
           git push
 
-      # Tag checkouts are detached HEADs. Use a separate checkout of main so
-      # the generated appcast can be committed and pushed as a fast-forward.
-      - name: Check out main for appcast update
-        uses: actions/checkout@v4
-        with:
-          ref: main
-          fetch-depth: 0
-          path: appcast-repo
-
       - name: Update appcast.xml
         working-directory: appcast-repo
         run: |
@@ -368,45 +539,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git pull --no-rebase origin main
-          # BEGIN APPCAST VERSION HELPERS
-          single_appcast_value() {
-            local kind="$1" file="$2" tag declarations values
-            case "$kind" in
-              version) tag="sparkle:shortVersionString" ;;
-              build) tag="sparkle:version" ;;
-              *) return 1 ;;
-            esac
-            declarations=$(awk -v needle="<$tag>" '{
-              line = $0
-              while ((position = index(line, needle)) > 0) {
-                count++
-                line = substr(line, position + length(needle))
-              }
-            } END { print count + 0 }' "$file")
-            if (( declarations != 1 )); then return 1; fi
-            if [[ "$kind" == "version" ]]; then
-              values=$(sed -nE 's|.*<sparkle:shortVersionString>([^<]+)</sparkle:shortVersionString>.*|\1|p' "$file")
-              if [[ ! "$values" =~ ^[0-9A-Za-z][0-9A-Za-z.-]*$ ]]; then return 1; fi
-            else
-              values=$(sed -nE 's|.*<sparkle:version>([^<]+)</sparkle:version>.*|\1|p' "$file")
-              if [[ ! "$values" =~ ^(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*)){0,2}$ ]]; then return 1; fi
-            fi
-            printf '%s\n' "$values"
-          }
-          build_greater_or_equal() {
-            local left_part right_part index
-            local -a left_parts right_parts
-            IFS=. read -r -a left_parts <<< "$1"
-            IFS=. read -r -a right_parts <<< "$2"
-            for index in 0 1 2; do
-              left_part=${left_parts[$index]:-0}
-              right_part=${right_parts[$index]:-0}
-              if (( 10#$left_part > 10#$right_part )); then return 0; fi
-              if (( 10#$left_part < 10#$right_part )); then return 1; fi
-            done
-            return 0
-          }
-          # END APPCAST VERSION HELPERS
+          . scripts/release_metadata_guards.sh
           if ! CURRENT_VERSION=$(single_appcast_value version website/appcast.xml); then
             echo "::error::Appcast must contain exactly one valid short version"
             exit 1
@@ -416,6 +549,42 @@ jobs:
             exit 1
           fi
           echo "Current appcast: $CURRENT_VERSION (build $CURRENT_BUILD)"
+          if ! CURRENT_PROJECT_VERSION=$(single_project_version project.yml); then
+            echo "::error::project.yml must contain exactly one canonical MARKETING_VERSION"
+            exit 1
+          fi
+          if ! CURRENT_STRUCTURED_VERSION=$(single_structured_version website/index.html); then
+            echo "::error::Website structured data must contain exactly one canonical softwareVersion"
+            exit 1
+          fi
+          if ! CURRENT_REPOSITORY_CASK_VERSION=$(single_cask_version Casks/easelwall.rb); then
+            echo "::error::Repository cask must contain exactly one canonical version declaration"
+            exit 1
+          fi
+          if ! CURRENT_REPOSITORY_CASK_SHA256=$(single_cask_sha256 Casks/easelwall.rb); then
+            echo "::error::Repository cask must contain exactly one canonical sha256 declaration"
+            exit 1
+          fi
+          if ! single_homepage_lastmod website/sitemap.xml >/dev/null; then
+            echo "::error::Sitemap must contain exactly one canonical homepage lastmod"
+            exit 1
+          fi
+          if [[ "$CURRENT_PROJECT_VERSION" != "$VERSION" ]]; then
+            echo "::error::Main project version $CURRENT_PROJECT_VERSION does not match release candidate $VERSION"
+            exit 1
+          fi
+          if ! CURRENT_PUBLISHED_VERSION=$(single_current_published_version \
+            "$VERSION" "$CURRENT_VERSION" "$CURRENT_REPOSITORY_CASK_VERSION" \
+            "$CURRENT_STRUCTURED_VERSION"); then
+            echo "::error::Main appcast, repository cask, and website versions disagree or exceed candidate $VERSION"
+            exit 1
+          fi
+          echo "Main recheck passed: candidate $CURRENT_PROJECT_VERSION; current channels publish $CURRENT_PUBLISHED_VERSION"
+          if [[ "$CURRENT_REPOSITORY_CASK_VERSION" == "$VERSION" && \
+                "$CURRENT_REPOSITORY_CASK_SHA256" != "$SHA256" ]]; then
+            echo "::error::Repository cask already publishes $VERSION with a different checksum"
+            exit 1
+          fi
           cat > website/appcast.xml.next << APPCASTEOF
           <?xml version="1.0" encoding="utf-8"?>
           <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
@@ -444,16 +613,43 @@ jobs:
           if cmp -s website/appcast.xml website/appcast.xml.next; then
             rm -f website/appcast.xml.next
             echo "Appcast is already exactly current"
-            exit 0
+          else
+            if build_greater_or_equal "$CURRENT_BUILD" "$BUILD_NUM"; then
+              echo "::error::Appcast build $CURRENT_BUILD is newer than or equal to candidate $BUILD_NUM; refusing overwrite"
+              exit 1
+            fi
+            mv website/appcast.xml.next website/appcast.xml
           fi
-          if build_greater_or_equal "$CURRENT_BUILD" "$BUILD_NUM"; then
-            echo "::error::Appcast build $CURRENT_BUILD is newer than or equal to candidate $BUILD_NUM; refusing overwrite"
+          python3 scripts/update_release_metadata.py \
+            --version "$VERSION" \
+            --date "$RELEASE_DATE"
+          sed -i '' -E "s/^([[:space:]]*)version \"[0-9]+\.[0-9]+\.[0-9]+\"[[:space:]]*$/\\1version \"$VERSION\"/" Casks/easelwall.rb
+          sed -i '' -E "s/^([[:space:]]*)sha256 \"[0-9A-Fa-f]{64}\"[[:space:]]*$/\\1sha256 \"$SHA256\"/" Casks/easelwall.rb
+
+          if [[ "$(single_project_version project.yml)" != "$VERSION" || \
+                "$(single_structured_version website/index.html)" != "$VERSION" || \
+                "$(single_cask_version Casks/easelwall.rb)" != "$VERSION" || \
+                "$(single_cask_sha256 Casks/easelwall.rb)" != "$SHA256" || \
+                "$(single_appcast_value version website/appcast.xml)" != "$VERSION" || \
+                "$(single_appcast_value build website/appcast.xml)" != "$BUILD_NUM" ]]; then
+            echo "::error::Generated release metadata failed post-update validation"
             exit 1
           fi
-          mv website/appcast.xml.next website/appcast.xml
-          EXPECTED_APPCAST_SHA=$(shasum -a 256 website/appcast.xml | awk '{ print $1 }')
-          git add website/appcast.xml
-          git commit -m "Update appcast for v$VERSION"
+          git add \
+            Casks/easelwall.rb \
+            project.yml \
+            website/appcast.xml \
+            website/index.html \
+            website/sitemap.xml
+          if git diff --cached --quiet; then
+            echo "Release metadata is already exactly current"
+            exit 0
+          fi
+          EXPECTED_RELEASE_METADATA_SHA=$(shasum -a 256 \
+            Casks/easelwall.rb project.yml website/appcast.xml \
+            website/index.html website/sitemap.xml \
+            | shasum -a 256 | awk '{ print $1 }')
+          git commit -m "Update release metadata for v$VERSION"
           for PUSH_ATTEMPT in 1 2 3; do
             if git push origin main; then
               exit 0
@@ -468,9 +664,12 @@ jobs:
               echo "::error::Main changed incompatibly; refusing to resolve automatically"
               exit 1
             fi
-            MERGED_APPCAST_SHA=$(shasum -a 256 website/appcast.xml | awk '{ print $1 }')
-            if [[ "$MERGED_APPCAST_SHA" != "$EXPECTED_APPCAST_SHA" ]]; then
-              echo "::error::Concurrent merge changed appcast content; refusing to publish"
+            MERGED_RELEASE_METADATA_SHA=$(shasum -a 256 \
+              Casks/easelwall.rb project.yml website/appcast.xml \
+              website/index.html website/sitemap.xml \
+              | shasum -a 256 | awk '{ print $1 }')
+            if [[ "$MERGED_RELEASE_METADATA_SHA" != "$EXPECTED_RELEASE_METADATA_SHA" ]]; then
+              echo "::error::Concurrent merge changed release metadata; refusing to publish"
               exit 1
             fi
           done
