@@ -63,18 +63,84 @@ The screenshot renderer produces 1280x800 layout references with:
 make appstore-marketing-screenshots
 ```
 
-The PNGs are written to the gitignored `screenshots/for-upload/` directory.
-They are built only from tracked website, icon, and painting assets; the
-renderer never reads raw desktop captures from `screenshots/`, which may
-contain private UI. **Do not upload these generated references as the App Store
-set.** Apple screenshots must show EaselWall in use. Capture the real menu,
-Settings panes, and resulting desktops, then review every frame for private UI
-before upload.
+The reference PNGs are written to the gitignored `screenshots/for-upload/`
+directory. They are built only from tracked website, icon, and painting assets;
+the renderer never reads raw desktop captures from `screenshots/`, which may
+contain private UI. **Do not upload these generated references.** Apple requires
+screenshots to show the app in use.
+
+Create the real upload candidates with:
+
+```bash
+make appstore-real-screenshots
+```
+
+When menu opening must be driven by an external Computer Use/CUA session rather
+than Accessibility-enabled AppleScript, run
+`./scripts/capture_app_store_screenshots.sh --cua-menu`. The harness records its
+preexisting owned window IDs, prints `CUA_MENU_READY` with a private marker path
+and target PID, then waits up to 180 seconds for CUA to open a new window owned by
+that exact process. Capture and provenance checks are otherwise identical.
+
+This builds a separate `Screenshot` configuration whose bundle identifier and
+preferences are isolated from the installed app. The only launch controls are
+compiled behind `SCREENSHOT_CAPTURE`; neither Release nor AppStore builds
+contain them. The harness gives `MatRenderer` an explicit screenshot-only render
+directory inside the private run root instead of relying on Foundation's
+interpretation of `TMPDIR`, and inventories that exact directory. It captures
+individual EaselWall-owned window IDs and copies those wallpaper PNGs. It never
+captures a display, region, Dock, menu bar, desktop icon, notification, or
+another app. Existing native sources and upload candidates are archived rather
+than deleted. Capture and compose share an atomic safety lock, so overlapping
+runs fail closed instead of racing the desktop, build products, sources, or
+upload output.
+
+The capture needs Screen Recording permission for the terminal. Opening the
+real menu-bar popover also needs Accessibility permission. It fails closed when
+either permission or an EaselWall-owned window cannot be verified. Outputs are
+written to `screenshots/real/for-upload/` as five 1280x800 RGB PNGs without an
+alpha channel. The menu process renders and records its own wallpaper set, so
+the menu screenshot cannot pair its titles with an unrelated painting. If a
+paired menu wallpaper is unavailable, recomposition uses a neutral backdrop
+instead. No native UI image is composed without its matching readiness record,
+exact capture dimensions, and exact capture hash. A failed menu recapture
+restores the last verified menu image and readiness record together. Before
+rotating anything, the harness backs up the wallpaper file bytes as well as
+their URLs and desktop image options; it recreates missing source files,
+restores every pre-capture wallpaper, and polls bounded readback of URL, semantic
+options, and file bytes before reporting success. Private backup directories are
+removed only after verified rollback. On rollback failure, the exact recovery
+directory and retained safety-lock path are printed instead. Render outputs
+live under a run-specific temporary directory and must contain exactly one fresh
+`MatRenderer` file for every display in that backup. The upload order puts
+Appearance, Displays, the keyless Gallery, and Schedule before the unchanged
+native menu capture.
+
+To adjust composition without touching the desktop or relaunching EaselWall:
+
+```bash
+make appstore-real-screenshots-compose
+```
+
+Recomposition intentionally fails if `menu.ready.json` is absent, malformed,
+or does not hash-bind the exact `menu.png`. Run a fresh real capture after UI
+changes; an unproven archived menu image is never silently promoted into upload
+output.
+
+Before upload, inspect all five images at full size and confirm that the UI is
+from the exact build being submitted. In particular, recapture after any
+Settings, attribution, collection, or version-text change.
 
 The exact US English metadata and screenshot ordering live in
 [`app-store-metadata.md`](app-store-metadata.md). Campaign links must use the
 provider token copied from EaselWall's own App Store Connect campaign-link
 generator; never infer that account-specific value.
+
+Apple's current Mac screenshot specification accepts exact 16:10 sizes
+including 1280x800, with one to ten PNG or JPEG screenshots and no transparency.
+Review the current official [screenshot specifications](https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/)
+and [App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/)
+before each upload; Guideline 2.3.3 requires screenshots to show the app in use.
 
 ## App Store reporting
 

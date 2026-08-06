@@ -20,6 +20,7 @@ struct EaselWallApp: App {
             )
         } label: {
             Image(systemName: "paintpalette.fill")
+                .accessibilityLabel("EaselWall")
         }
     }
 }
@@ -37,6 +38,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var rotationTimer: Timer?
     private var settingsWindow: NSWindow?
+    #if SCREENSHOT_CAPTURE
+    private var screenshotMenuTriggerWindow: NSWindow?
+    private var screenshotMenuPopover: NSPopover?
+    #endif
     #if !APPSTORE
     private(set) var appUpdater: AppUpdater?
     #endif
@@ -58,6 +63,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSLog("[EaselWall] App launched, \(paintingStore.catalog.count) paintings loaded")
+
+        #if SCREENSHOT_CAPTURE
+        do {
+            if let capture = try ScreenshotCaptureOptions(arguments: CommandLine.arguments) {
+                if capture.renderWallpaper {
+                    wallpaperManager.rotateWallpapers()
+                }
+
+                switch capture.mode {
+                case .settings(let tab):
+                    showSettingsForScreenshot(initialTab: tab, capture: capture)
+                case .menu:
+                    showMenuForScreenshot(capture: capture)
+                }
+                return
+            }
+        } catch {
+            NSLog("[EaselWall] Invalid screenshot capture request: \(error.localizedDescription)")
+            NSApp.terminate(nil)
+            return
+        }
+        #endif
 
         if settings.launchAtLogin {
             try? SMAppService.mainApp.register()
@@ -102,11 +129,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.wallpaperManager.rotateWallpapers()
             }
         }
+
     }
 
     // MARK: - Settings Window
 
-    func showSettings() {
+    func showSettings(initialTab: SettingsTab = .appearance) {
         if let existing = settingsWindow, existing.isVisible {
             existing.makeKeyAndOrderFront(nil)
             NSApp.activate(ignoringOtherApps: true)
@@ -116,7 +144,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let settingsView = SettingsView(
             settings: settings,
             paintingStore: paintingStore,
-            wallpaperManager: wallpaperManager
+            wallpaperManager: wallpaperManager,
+            initialTab: initialTab
         )
 
         let window = NSWindow(
@@ -134,6 +163,91 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
+
+    #if SCREENSHOT_CAPTURE
+    private func showSettingsForScreenshot(
+        initialTab: SettingsTab,
+        capture: ScreenshotCaptureOptions
+    ) {
+        showSettings(initialTab: initialTab)
+        DispatchQueue.main.async { [weak self] in
+            guard let window = self?.settingsWindow else {
+                return
+            }
+            window.contentView?.layoutSubtreeIfNeeded()
+            window.displayIfNeeded()
+            capture.writeReady(window: window)
+        }
+    }
+
+    private func showMenuForScreenshot(capture: ScreenshotCaptureOptions) {
+        let button = NSButton(
+            title: "Open EaselWall Menu",
+            target: self,
+            action: #selector(openScreenshotMenuPopover(_:))
+        )
+        button.bezelStyle = .rounded
+        button.setAccessibilityLabel("Open EaselWall Menu")
+        button.translatesAutoresizingMaskIntoConstraints = false
+
+        let content = NSView(frame: NSRect(x: 0, y: 0, width: 280, height: 120))
+        content.addSubview(button)
+        NSLayoutConstraint.activate([
+            button.centerXAnchor.constraint(equalTo: content.centerXAnchor),
+            button.centerYAnchor.constraint(equalTo: content.centerYAnchor),
+        ])
+
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 280, height: 120),
+            styleMask: [.titled],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "EaselWall Screenshot Control"
+        window.contentView = content
+        window.center()
+        window.isReleasedWhenClosed = false
+        screenshotMenuTriggerWindow = window
+
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        DispatchQueue.main.async {
+            window.contentView?.layoutSubtreeIfNeeded()
+            window.displayIfNeeded()
+            // The trigger window must be part of the shell harness baseline,
+            // but the captured window is the new popover opened by CUA.
+            capture.writeReady(window: nil)
+        }
+    }
+
+    @objc private func openScreenshotMenuPopover(_ sender: NSButton) {
+        if let popover = screenshotMenuPopover, popover.isShown {
+            return
+        }
+
+        let menuView = MenuBarView(
+            paintingStore: paintingStore,
+            wallpaperManager: wallpaperManager,
+            screenManager: screenManager,
+            onOpenSettings: {},
+            onCheckForUpdates: {}
+        )
+        let hostingController = NSHostingController(rootView: menuView)
+        let popover = NSPopover()
+        popover.behavior = .applicationDefined
+        popover.animates = false
+        popover.contentSize = NSSize(width: 342, height: 330)
+        popover.contentViewController = hostingController
+        screenshotMenuPopover = popover
+        popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: .maxY)
+        // `screencapture -l` includes an attached popover's anchor window in
+        // the captured window group. Keep the anchor alive for AppKit, but
+        // make it fully transparent so only the real MenuBarView is visible.
+        screenshotMenuTriggerWindow?.alphaValue = 0
+        popover.contentViewController?.view.window?.makeFirstResponder(nil)
+        popover.contentViewController?.view.window?.displayIfNeeded()
+    }
+    #endif
 
     // MARK: - Scheduling
 

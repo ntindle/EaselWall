@@ -25,7 +25,19 @@ struct SettingsView: View {
     @ObservedObject var settings: AppSettings
     @ObservedObject var paintingStore: PaintingStore
     @ObservedObject var wallpaperManager: WallpaperManager
-    @State private var selectedTab: SettingsTab = .appearance
+    @State private var selectedTab: SettingsTab
+
+    init(
+        settings: AppSettings,
+        paintingStore: PaintingStore,
+        wallpaperManager: WallpaperManager,
+        initialTab: SettingsTab = .appearance
+    ) {
+        self.settings = settings
+        self.paintingStore = paintingStore
+        self.wallpaperManager = wallpaperManager
+        _selectedTab = State(initialValue: initialTab)
+    }
 
     var body: some View {
         HSplitView {

@@ -3,6 +3,7 @@ configs:
   Debug: debug
   Release: release
   AppStore: release
+  Screenshot: debug
 options:
   bundleIdPrefix: com.ntindle
   deploymentTarget:
@@ -69,6 +70,12 @@ targets:
           CODE_SIGN_STYLE: Automatic
           DEVELOPMENT_TEAM: ZT2H4NNXSQ
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: APPSTORE
+        Screenshot:
+          CODE_SIGN_IDENTITY: "-"
+          CODE_SIGN_ENTITLEMENTS: EaselWall.entitlements
+          CODE_SIGN_STYLE: Automatic
+          PRODUCT_BUNDLE_IDENTIFIER: com.ntindle.EaselWall.ScreenshotHarness
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: APPSTORE SCREENSHOT_CAPTURE
 
   EaselWallControlWidget:
     type: app-extension
@@ -108,6 +115,12 @@ targets:
           CODE_SIGN_STYLE: Automatic
           DEVELOPMENT_TEAM: ZT2H4NNXSQ
           SWIFT_ACTIVE_COMPILATION_CONDITIONS: APPSTORE
+        Screenshot:
+          CODE_SIGN_IDENTITY: "-"
+          CODE_SIGN_ENTITLEMENTS: EaselWallControlWidget.entitlements
+          CODE_SIGN_STYLE: Automatic
+          PRODUCT_BUNDLE_IDENTIFIER: com.ntindle.EaselWall.ScreenshotHarness.ControlWidget
+          SWIFT_ACTIVE_COMPILATION_CONDITIONS: APPSTORE
 
   EaselWallTests:
     type: bundle.unit-test
@@ -118,12 +131,14 @@ targets:
       - path: Sources/EaselWall/API/MuseumURLRequest.swift
       - path: Sources/EaselWall/Models/AppSettings.swift
       - path: Sources/EaselWall/Models/Painting.swift
+      - path: Sources/EaselWall/Services/MatRenderer.swift
       - path: Sources/EaselWall/Services/PaintingStore.swift
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.ntindle.EaselWallTests
         GENERATE_INFOPLIST_FILE: true
         BUNDLE_LOADER: ""
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) SCREENSHOT_CAPTURE"
 
 schemes:
   EaselWallTests:

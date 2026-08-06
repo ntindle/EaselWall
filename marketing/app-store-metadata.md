@@ -61,21 +61,23 @@ source image CC0: EaselWall also accepts Public Domain Mark 1.0 records.
 
 ## Real screenshot candidate order
 
-Generated layouts are references only. The real capture harness writes a
-review manifest under `screenshots/real/for-upload/`. After confirming every
-frame comes from the exact submitted build and contains no private UI, use this
-order:
+The generated `screenshots/real/for-upload/manifest.json` owns the exact set and
+hashes. Upload in this order:
 
-1. `01-current-painting.png`
-2. `02-customize-mats.png`
-3. `03-every-display.png`
-4. `04-curated-gallery.png`
-5. `05-daily-schedule.png`
+1. `01-customize-mats.png`
+2. `02-every-display.png`
+3. `03-curated-gallery.png`
+4. `04-daily-schedule.png`
+5. `05-current-painting.png`
 
-Apple requires screenshots to show the app in use. Explanatory text and
-overlays are allowed, but each final composite must visibly use genuine
-EaselWall output or UI. The Gallery frame must show the current keyless
-collection UI. Review the complete five-image set at full size before upload.
+Apple requires screenshots to show the app in use. Every final composite uses
+genuine EaselWall UI. Settings appear over wallpaper output written by the same
+native build; the menu uses its own paired render or a neutral privacy-safe
+backdrop, but only when `menu.png` has a matching native readiness record and
+exact capture hash. The conversion-critical first image shows Appearance over a
+rendered painting, followed by Displays, the keyless Gallery, and Schedule. The
+verified native menu capture is last. Review the complete five-image set before
+upload.
 
 Mac-only apps cannot currently use Custom Product Pages or Product Page
 Optimization; those features require an iOS or iPadOS app. Treat the first

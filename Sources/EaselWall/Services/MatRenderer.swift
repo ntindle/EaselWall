@@ -2,6 +2,23 @@ import AppKit
 import CoreGraphics
 
 struct MatRenderer {
+    #if SCREENSHOT_CAPTURE
+    static let screenshotRenderDirectoryEnvironmentKey =
+        "EASELWALL_SCREENSHOT_RENDER_DIRECTORY"
+
+    static func screenshotRenderDirectory(
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> URL? {
+        guard let path = environment[screenshotRenderDirectoryEnvironmentKey] else {
+            return nil
+        }
+        guard path.hasPrefix("/") else {
+            return nil
+        }
+        return URL(fileURLWithPath: path, isDirectory: true).standardizedFileURL
+    }
+    #endif
+
     struct Configuration: Sendable {
         let matColor: CGColor
         let spacing: MatSpacing
@@ -156,8 +173,23 @@ struct MatRenderer {
     }
 
     static func saveToTemporaryFile(_ image: CGImage, screenID: CGDirectDisplayID) -> URL? {
-        let tempDir = FileManager.default.temporaryDirectory
+        let tempDir: URL
+        #if SCREENSHOT_CAPTURE
+        if ProcessInfo.processInfo.environment.keys.contains(
+            screenshotRenderDirectoryEnvironmentKey
+        ) {
+            guard let override = screenshotRenderDirectory() else {
+                return nil
+            }
+            tempDir = override
+        } else {
+            tempDir = FileManager.default.temporaryDirectory
+                .appendingPathComponent("EaselWall", isDirectory: true)
+        }
+        #else
+        tempDir = FileManager.default.temporaryDirectory
             .appendingPathComponent("EaselWall", isDirectory: true)
+        #endif
 
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
 

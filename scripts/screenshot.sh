@@ -82,7 +82,7 @@ desktop() {
   fi
   # For each unique screen ID, pick the file with the largest mtime
   local screens
-  screens=$(ls "$dir"/wallpaper_*.png 2>/dev/null \
+  screens=$(find "$dir" -maxdepth 1 -type f -name 'wallpaper_*.png' -print \
     | sed -E 's|.*wallpaper_([0-9]+)_[0-9]+\.png|\1|' \
     | sort -un)
   if [[ -z "$screens" ]]; then
@@ -91,7 +91,10 @@ desktop() {
   fi
   while IFS= read -r screen; do
     local newest
-    newest=$(ls -t "$dir"/wallpaper_"${screen}"_*.png 2>/dev/null | head -1)
+    newest=$(find "$dir" -maxdepth 1 -type f -name "wallpaper_${screen}_*.png" \
+      -exec stat -f '%m %N' {} + \
+      | sort -rn \
+      | sed -n '1s/^[^ ]* //p')
     [[ -z "$newest" ]] && continue
     local out="$SHOTS_DIR/desktop-${label}-screen-${screen}.png"
     cp "$newest" "$out"
@@ -128,14 +131,16 @@ auto() {
 }
 
 window() {
-  local out="$SHOTS_DIR/window-$(date +%H%M%S).png"
+  local out
+  out="$SHOTS_DIR/window-$(date +%H%M%S).png"
   echo "Click the window you want to capture (Esc cancels)..."
   screencapture -w -t png -o "$out"
   echo "→ $out"
 }
 
 region() {
-  local out="$SHOTS_DIR/region-$(date +%H%M%S).png"
+  local out
+  out="$SHOTS_DIR/region-$(date +%H%M%S).png"
   echo "Drag to select a region (Esc cancels)..."
   screencapture -i -t png -o "$out"
   echo "→ $out"
@@ -161,7 +166,8 @@ APPLESCRIPT
     exit 1
   fi
   sleep 0.4
-  local out="$SHOTS_DIR/menubar-$(date +%H%M%S).png"
+  local out
+  out="$SHOTS_DIR/menubar-$(date +%H%M%S).png"
   # Capture top-right region of primary display where MenuBarExtra lives.
   # Tune coords if your display geometry differs.
   screencapture -D 1 -t png -x -o "$out"
