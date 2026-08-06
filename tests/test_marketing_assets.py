@@ -5,6 +5,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
+APP_STORE_METADATA = ROOT / "marketing" / "app-store-metadata.md"
 INDEX = ROOT / "website" / "index.html"
 REDIRECTS = ROOT / "website" / "_redirects"
 PRIVACY = ROOT / "website" / "privacy.html"
@@ -20,6 +21,7 @@ class WebsiteAttributionTests(unittest.TestCase):
         cls.privacy = PRIVACY.read_text(encoding="utf-8")
         cls.readme = README.read_text(encoding="utf-8")
         cls.support = SUPPORT.read_text(encoding="utf-8")
+        cls.app_store_metadata = APP_STORE_METADATA.read_text(encoding="utf-8")
         match = re.search(
             r'<script type="application/ld\+json">\s*(.*?)\s*</script>',
             cls.index,
@@ -114,6 +116,21 @@ class WebsiteAttributionTests(unittest.TestCase):
         credit = "developed using the Rijksmuseum API"
         self.assertIn(credit, self.index)
         self.assertIn(credit, self.readme)
+
+    def test_app_store_description_is_complete_current_and_within_limits(self):
+        text_blocks = re.findall(
+            r"```text\n(.*?)\n```", self.app_store_metadata, flags=re.DOTALL
+        )
+        self.assertEqual(len(text_blocks), 2)
+        description, whats_new = text_blocks
+
+        self.assertLessEqual(len(description), 4_000)
+        self.assertLessEqual(len(whats_new), 4_000)
+        self.assertIn("no API key required", description)
+        self.assertIn("No tracking", description)
+        self.assertIn("macOS 14 Sonoma or later", description)
+        self.assertIn("no longer needs a Rijksmuseum API key", whats_new)
+        self.assertNotIn("your own API key", description.lower())
 
 
 if __name__ == "__main__":
