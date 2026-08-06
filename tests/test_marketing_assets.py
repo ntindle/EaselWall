@@ -11,6 +11,7 @@ REDIRECTS = ROOT / "website" / "_redirects"
 PRIVACY = ROOT / "website" / "privacy.html"
 README = ROOT / "README.md"
 SUPPORT = ROOT / "website" / "support.html"
+PROJECT = ROOT / "project.yml"
 
 
 class WebsiteAttributionTests(unittest.TestCase):
@@ -39,6 +40,12 @@ class WebsiteAttributionTests(unittest.TestCase):
             self.structured_data["offers"][0]["url"],
             "https://easelwall.com/app-store",
         )
+
+    def test_structured_version_matches_the_project_marketing_version(self):
+        project = PROJECT.read_text(encoding="utf-8")
+        match = re.search(r'MARKETING_VERSION:\s*"([^"]+)"', project)
+        self.assertIsNotNone(match)
+        self.assertEqual(self.structured_data["softwareVersion"], match.group(1))
 
     def test_redirects_preserve_website_and_tiktok_campaign_tokens(self):
         self.assertIn(
