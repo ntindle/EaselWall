@@ -12,13 +12,49 @@ claim synchronized with the shipping App Store build.
 | Promotional text | `Turn your Mac into a quiet daily exhibition: a new Impressionist painting, thoughtfully matted for each display—no account, ads, or tracking.` | 141 / 170 characters |
 | Keywords | `wallpaper,desktop,painting,museum,landscape,portrait,menubar,background,curated,masterpiece,matting` | 99 / 100 UTF-8 bytes |
 
-Description opening:
+## Description
 
-> Turn your Mac desktop into a daily exhibition.
->
-> EaselWall lives in your menu bar and sets a different public-domain
-> Impressionist painting as your wallpaper each day, presented on a
-> museum-style mat.
+```text
+Turn your Mac desktop into a daily exhibition.
+
+EaselWall lives in your menu bar and sets a different public-domain Impressionist painting as your wallpaper each day, presented on a museum-style mat.
+
+A CALMER DESKTOP
+• 53 curated works by Monet, Van Gogh, Cassatt, Degas, Renoir, Cézanne, and Seurat
+• 30 paintings bundled for offline use
+• Automatic daily rotation at a time you choose
+• No repeats within each display orientation until that cycle completes
+
+MADE FOR MAC DISPLAYS
+• Landscape art for landscape screens; portrait art for portrait screens
+• Optionally use a different painting on every display
+• Automatically adapts when displays connect or disconnect
+• Native menu bar controls and launch at login
+• “Next Painting” Control Center action on macOS 26 or later
+
+YOUR OWN MUSEUM PRESENTATION
+• Soft museum-style mats with configurable color and spacing
+• Optional mat-free wallpapers
+• Change to the next painting whenever you like
+• Add more public-domain Van Gogh works from the Rijksmuseum Collection—no API key required
+
+SIMPLE BY DESIGN
+• One-time purchase
+• No account
+• No ads
+• No tracking
+• No in-app purchases
+
+Artwork comes from museum open-access programs. EaselWall accepts remotely fetched works only when the source record marks the image CC0 or Public Domain. Credits and source links are included in the app.
+
+Requires macOS 14 Sonoma or later. Internet access is needed to discover and download works beyond the bundled collection.
+```
+
+## What's New in 1.0.3
+
+```text
+Additional Collections no longer needs a Rijksmuseum API key. EaselWall now uses the museum’s current keyless data service, accepts only records marked CC0 or Public Domain, and gives clearer feedback when a collection is temporarily unavailable. This update also improves painting-cache migration and reliability.
+```
 
 Do not repeat the app name or subtitle terms in Keywords. Do not call every
 source image CC0: EaselWall also accepts Public Domain Mark 1.0 records.
