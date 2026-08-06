@@ -28,8 +28,8 @@ OUTPUT_DIR = ROOT / "marketing" / "renders"
 WIDTH = 1080
 HEIGHT = 1920
 FPS = 30
-SCENE_DURATIONS = (2.6, 3.4, 2.4)
-CROSSFADE = 0.35
+SCENE_DURATIONS = (3.6, 5.2, 3.8)
+CROSSFADE = 0.45
 
 PAPER = "#F1E9D7"
 INK = "#1A120B"
@@ -39,9 +39,6 @@ VERMILLION = "#B5381C"
 DISPLAY_FONT = Path("/System/Library/Fonts/NewYork.ttf")
 SANS_FONT = Path("/System/Library/Fonts/SFNS.ttf")
 MONO_FONT = Path("/System/Library/Fonts/SFNSMono.ttf")
-
-HASHTAGS = "#MacApps #DeskSetup #Wallpaper #DigitalArt #EaselWall"
-
 
 def require_tool(name: str) -> str:
     tool = shutil.which(name)
@@ -226,7 +223,9 @@ def create_visual_scene(video: dict[str, Any], assets: list[str], proof_scene: b
     return canvas
 
 
-def create_cta_scene(video: dict[str, Any], cta: str) -> Image.Image:
+def create_cta_scene(
+    video: dict[str, Any], cta: str, destination_cta: str
+) -> Image.Image:
     icon_path = relative_asset("website/assets/icon-512.png")
     with Image.open(icon_path) as icon_source:
         icon = icon_source.convert("RGBA").resize((280, 280), Image.Resampling.LANCZOS)
@@ -249,7 +248,13 @@ def create_cta_scene(video: dict[str, Any], cta: str) -> Image.Image:
     cta_bbox = draw.textbbox((0, 0), cta, font=sans)
     draw.text(((WIDTH - (cta_bbox[2] - cta_bbox[0])) // 2, 1180), cta, font=sans, fill=INK)
 
-    letterspaced_text(draw, (165, 1370), "MAC APP STORE  ·  LINK IN BIO", mono, "#D7B77F", 1)
+    destination_bbox = draw.textbbox((0, 0), destination_cta, font=mono)
+    draw.text(
+        ((WIDTH - (destination_bbox[2] - destination_bbox[0])) // 2, 1370),
+        destination_cta,
+        font=mono,
+        fill="#D7B77F",
+    )
     footer = "ONE-TIME PURCHASE  ·  NO ACCOUNT  ·  NO TRACKING"
     footer_bbox = draw.textbbox((0, 0), footer, font=mono)
     draw.text(((WIDTH - (footer_bbox[2] - footer_bbox[0])) // 2, 1460), footer, font=mono, fill=(241, 233, 215, 180))
@@ -331,7 +336,7 @@ def inspect_video(path: Path) -> dict[str, Any]:
         raise RuntimeError(f"Unexpected dimensions for {path.name}: {video_stream}")
     if video_stream.get("codec_name") != "h264" or video_stream.get("pix_fmt") != "yuv420p":
         raise RuntimeError(f"Unexpected video encoding for {path.name}: {video_stream}")
-    if not 7.5 <= duration <= 8.0:
+    if not 11.5 <= duration <= 12.0:
         raise RuntimeError(f"Unexpected duration for {path.name}: {duration}")
     return {
         "file": path.name,
@@ -346,7 +351,9 @@ def inspect_video(path: Path) -> dict[str, Any]:
     }
 
 
-def render_video(video: dict[str, Any], default_cta: str) -> dict[str, Any]:
+def render_video(
+    video: dict[str, Any], default_cta: str, default_destination_cta: str
+) -> dict[str, Any]:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     output = OUTPUT_DIR / f"{video['id']}.mp4"
     with tempfile.TemporaryDirectory(prefix=f"easelwall-{video['id']}-") as temp_dir:
@@ -354,7 +361,11 @@ def render_video(video: dict[str, Any], default_cta: str) -> dict[str, Any]:
         scenes = [
             create_visual_scene(video, video["assets"][0], proof_scene=False),
             create_visual_scene(video, video["assets"][1], proof_scene=True),
-            create_cta_scene(video, video.get("cta", default_cta)),
+            create_cta_scene(
+                video,
+                video.get("cta", default_cta),
+                video.get("destinationCta", default_destination_cta),
+            ),
         ]
         scene_paths: list[Path] = []
         for index, scene in enumerate(scenes):
@@ -368,12 +379,29 @@ def render_video(video: dict[str, Any], default_cta: str) -> dict[str, Any]:
     return result
 
 
-def write_ledgers(videos: list[dict[str, Any]], results: list[dict[str, Any]]) -> None:
+def write_ledgers(
+    videos: list[dict[str, Any]],
+    results: list[dict[str, Any]],
+    *,
+    default_destination_cta: str,
+    hashtag_sets: list[str],
+    profile_link: str,
+) -> None:
     plan_path = OUTPUT_DIR / "posting-plan.csv"
     with plan_path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(
             handle,
-            fieldnames=["order", "file", "caption", "hashtags", "disclosure", "audio", "profile_link"],
+            fieldnames=[
+                "order",
+                "file",
+                "caption",
+                "hashtags",
+                "disclosure",
+                "audio",
+                "store_discovery_cta",
+                "profile_link_if_available",
+                "profile_link_requirement",
+            ],
         )
         writer.writeheader()
         for order, video in enumerate(videos, start=1):
@@ -382,10 +410,16 @@ def write_ledgers(videos: list[dict[str, Any]], results: list[dict[str, Any]]) -
                     "order": order,
                     "file": f"{video['id']}.mp4",
                     "caption": video["caption"],
-                    "hashtags": HASHTAGS,
+                    "hashtags": hashtag_sets[(order - 1) % len(hashtag_sets)],
                     "disclosure": "Promotional content / Your brand",
                     "audio": "Add a licensed TikTok Commercial Music Library track before publishing",
-                    "profile_link": "https://easelwall.com/tiktok",
+                    "store_discovery_cta": video.get(
+                        "destinationCta", default_destination_cta
+                    ),
+                    "profile_link_if_available": profile_link,
+                    "profile_link_requirement": (
+                        "Use only after the TikTok profile visibly exposes a clickable website field"
+                    ),
                 }
             )
     manifest_path = OUTPUT_DIR / "render-manifest.json"
@@ -474,7 +508,12 @@ def main() -> int:
             parser.error(f"Unknown video id: {args.id}")
 
     rendered = [
-        render_video(video, content["defaultCta"]) for video in selected_videos
+        render_video(
+            video,
+            content["defaultCta"],
+            content["defaultDestinationCta"],
+        )
+        for video in selected_videos
     ]
     results_by_id = {result["id"]: result for result in rendered}
 
@@ -495,7 +534,13 @@ def main() -> int:
         video for video in all_videos if video["id"] in results_by_id
     ]
     results = [results_by_id[video["id"]] for video in available_videos]
-    write_ledgers(available_videos, results)
+    write_ledgers(
+        available_videos,
+        results,
+        default_destination_cta=content["defaultDestinationCta"],
+        hashtag_sets=content["hashtagSets"],
+        profile_link=content["profileLink"],
+    )
     create_contact_sheet(results)
     return 0
 

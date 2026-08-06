@@ -29,6 +29,9 @@ screenshots/
 # Rendered social videos (regenerable from marketing/videos.json)
 marketing/renders/
 
+# Private native-platform creative experiment observations
+marketing/experiments/
+
 # Private App Store Connect analytics downloads
 marketing/reports/
 
